@@ -12,19 +12,20 @@ enum LayerType
     LAYER_LIRS
 };
 
-struct Layer
+struct ConfigLayer
 {
     size_t size;
     LayerType type;
-    int* values;
 };
 
-struct Cache
+struct Config
 {
     size_t layers_count;
-    Layer* layers;
+    ConfigLayer* layers;
 };
 
-Cache* LoadConfig(const char* filename);
+Config* LoadConfig(const char* filename);
+
+#define VALUE int
 
 #endif //CONFIG_H

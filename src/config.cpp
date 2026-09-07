@@ -3,22 +3,22 @@
 
 #include "config.h"
 
-Cache* LoadConfig(const char* filename)
+Config* LoadConfig(const char* filename)
 {
     if(!filename) return NULL;
 
     FILE* file = fopen(filename, "r");
     if(!file) return NULL;
 
-    Cache* cache = (Cache*)calloc(1, sizeof(Cache));
-    if(!cache) return NULL;
+    Config* config = (Config*)calloc(1, sizeof(Config));
+    if(!config) return NULL;
 
     size_t layers_count;
 
     if(fscanf(file, "%lu", &layers_count) <= 0) return NULL;
 
-    cache->layers_count = layers_count;
-    cache->layers = (Layer*)calloc(layers_count, sizeof(Layer));
+    config->layers_count = layers_count;
+    config->layers = (ConfigLayer*)calloc(layers_count, sizeof(ConfigLayer));
 
     for(size_t i = 0; i < layers_count; i++)
     {
@@ -26,18 +26,17 @@ Cache* LoadConfig(const char* filename)
         char* layer_type = (char*)calloc(101, sizeof(char));
         if(fscanf(file, "%lu %100s", &layer_size, layer_type) <= 0) return NULL;
 
-        cache->layers[i].size = layer_size;
-        cache->layers[i].values = (int*)calloc(layer_size, sizeof(int));
+        config->layers[i].size = layer_size;
 
-             if(!strcmp(layer_type, "ARC"))     cache->layers[i].type = LAYER_ARC;
-        else if(!strcmp(layer_type, "2Q"))      cache->layers[i].type = LAYER_2Q;
-        else if(!strcmp(layer_type, "LFU"))     cache->layers[i].type = LAYER_LFU;
-        else if(!strcmp(layer_type, "LRU"))     cache->layers[i].type = LAYER_LRU;
-        else if(!strcmp(layer_type, "LIRS"))    cache->layers[i].type = LAYER_LIRS;
+             if(!strcmp(layer_type, "ARC"))     config->layers[i].type = LAYER_ARC;
+        else if(!strcmp(layer_type, "2Q"))      config->layers[i].type = LAYER_2Q;
+        else if(!strcmp(layer_type, "LFU"))     config->layers[i].type = LAYER_LFU;
+        else if(!strcmp(layer_type, "LRU"))     config->layers[i].type = LAYER_LRU;
+        else if(!strcmp(layer_type, "LIRS"))    config->layers[i].type = LAYER_LIRS;
         else return NULL;
 
         free(layer_type);
     }
 
-    return cache;
+    return config;
 }
