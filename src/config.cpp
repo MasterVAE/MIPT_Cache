@@ -1,41 +1,60 @@
-#include <stdio.h>
-#include <string.h>
+#include <fstream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <unordered_map>
 
 #include "config.h"
 
-Config* LoadConfig(const char* filename)
+namespace
 {
-    if(!filename) return NULL;
 
-    FILE* file = fopen(filename, "r");
-    if(!file) return NULL;
+LayerType ParseLayerType(std::string_view name)
+{
+    static const std::unordered_map<std::string_view, LayerType> kTypes = {
+        {"ARC",  LAYER_ARC},
+        {"2Q",   LAYER_2Q},
+        {"LFU",  LAYER_LFU},
+        {"LRU",  LAYER_LRU},
+        {"LIRS", LAYER_LIRS},
+    };
 
-    Config* config = (Config*)calloc(1, sizeof(Config));
-    if(!config) return NULL;
+    if (auto it = kTypes.find(name); it != kTypes.end()) {
+        return it->second;
+    }
+    throw std::invalid_argument("Unknown layer type: " + std::string(name));
+}
 
-    size_t layers_count;
+}  // namespace
 
-    if(fscanf(file, "%lu", &layers_count) <= 0) return NULL;
+std::unique_ptr<Config> LoadConfig(const std::string& filename)
+{
+    if (filename.empty()) return nullptr;
 
-    config->layers_count = layers_count;
-    config->layers = (ConfigLayer*)calloc(layers_count, sizeof(ConfigLayer));
+    std::ifstream file(filename);
+    if (!file) return nullptr;
 
-    for(size_t i = 0; i < layers_count; i++)
+    auto config = std::make_unique<Config>();
+
+    std::size_t layers_count = 0;
+    if (!(file >> layers_count)) return nullptr;
+
+    config->layers.resize(layers_count);
+
+    for (auto& layer : config->layers) 
     {
-        size_t layer_size;
-        char* layer_type = (char*)calloc(101, sizeof(char));
-        if(fscanf(file, "%lu %100s", &layer_size, layer_type) <= 0) return NULL;
+        std::string type_name;
+        if (!(file >> layer.size >> type_name)) return nullptr;
 
-        config->layers[i].size = layer_size;
-
-             if(!strcmp(layer_type, "ARC"))     config->layers[i].type = LAYER_ARC;
-        else if(!strcmp(layer_type, "2Q"))      config->layers[i].type = LAYER_2Q;
-        else if(!strcmp(layer_type, "LFU"))     config->layers[i].type = LAYER_LFU;
-        else if(!strcmp(layer_type, "LRU"))     config->layers[i].type = LAYER_LRU;
-        else if(!strcmp(layer_type, "LIRS"))    config->layers[i].type = LAYER_LIRS;
-        else return NULL;
-
-        free(layer_type);
+        try 
+        {
+            layer.type = ParseLayerType(type_name);
+        } 
+        catch (const std::invalid_argument&) 
+        {
+            return nullptr;
+        }
     }
 
     return config;

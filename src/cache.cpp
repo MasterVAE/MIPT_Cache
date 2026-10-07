@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <limits>
+#include <memory>
 
 #include "config.h"
 #include "cache.h"
@@ -52,14 +53,14 @@ struct Cache_LRU : CacheFunc
     }
 };
 
-Cache* CreateCache(Config* config)
+Cache* CreateCache(std::unique_ptr<Config> config)
 {
     if(!config) return NULL;
 
     Cache* cache = (Cache*)calloc(1, sizeof(Cache));
     if(!cache) return NULL;
 
-    cache->layers_count = config->layers_count;
+    cache->layers_count = config->layers.size();
     cache->layers = (CacheFunc**)calloc(cache->layers_count, sizeof(CacheFunc*));
 
     for(size_t i = 0; i < cache->layers_count; i++)
