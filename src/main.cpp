@@ -1,4 +1,6 @@
-#include <stdio.h>
+#include <iostream>
+#include <vector>
+#include <memory>
 
 #include "config.h"
 #include "cache.h"
@@ -8,41 +10,30 @@ static const char* CONFIG_FILENAME = "config.cfg";
 
 int main()
 {
-
-    Config* config = LoadConfig(CONFIG_FILENAME);
+    std::unique_ptr<Config> config = LoadConfig(CONFIG_FILENAME);
     if(!config) exit(EXIT_FAILURE);
 
-    Cache* cache = CreateCache(config);
-    if(!cache)
-    {
-        free(config);
-        exit(EXIT_FAILURE);
-    }
-
-    free(config->layers);
-    free(config);
+    Cache* cache = CreateCache(std::move(config));
+    if(!cache) exit(EXIT_FAILURE);
 
     size_t count;
-    if(scanf("%lu", &count) <= 0) 
+    std::cin >> count;
+    if(count <= 0) 
     {
         DestroyCache(cache);
         exit(EXIT_FAILURE);
     }
 
-    VALUE* numbers = (VALUE*)calloc(count, sizeof(VALUE));
-    for(size_t i = 0; i < count; i++)
-    {
-        scanf("%d", numbers + i);
-    }
+    int* numbers = (int*)calloc(count, sizeof(int));
+    for(size_t i = 0; i < count; i++) std::cin >> numbers[i];
 
     int miss = RunCache(cache, count, numbers);
     free(numbers);
     DestroyCache(cache);
 
     if(miss < 0) exit(EXIT_FAILURE);
-    
 
-    printf("MISS: %d\n", miss);
+    std::cout << "Misses: " << miss << std::endl;
 
     return 0;
 }

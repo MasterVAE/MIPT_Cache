@@ -2,6 +2,8 @@
 #define CONFIG_H
 
 #include <stdlib.h>
+#include <vector>
+#include <memory>
 
 enum LayerType
 {
@@ -20,11 +22,10 @@ struct ConfigLayer
 
 struct Config
 {
-    size_t layers_count;
-    ConfigLayer* layers;
+    std::vector<ConfigLayer> layers;
 };
 
-Config* LoadConfig(const char* filename);
+std::unique_ptr<Config> LoadConfig(const std::string& filename);
 
 #define VALUE int
 

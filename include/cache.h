@@ -17,9 +17,9 @@ struct Cache
     CacheFunc** layers;
 };
 
-Cache* CreateCache(Config* config);
-void DestroyCache(Cache* cache);
+Cache* CreateCache(std::unique_ptr<Config>);
+void DestroyCache(Cache*);
 
-int RunCache(Cache* cache, size_t count, int* numbers);
+int RunCache(Cache*, size_t, int*);
 
 #endif //CACHE_H
