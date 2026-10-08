@@ -1,5 +1,4 @@
-#ifndef CACHE_H
-#define CACHE_H
+#pragma once
 
 #include "config.h"
 
@@ -21,5 +20,3 @@ Cache* CreateCache(std::unique_ptr<Config>);
 void DestroyCache(Cache*);
 
 int RunCache(Cache*, size_t, int*);
-
-#endif //CACHE_H

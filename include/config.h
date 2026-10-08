@@ -1,5 +1,4 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#pragma once
 
 #include <stdlib.h>
 #include <vector>
@@ -28,5 +27,3 @@ struct Config
 std::unique_ptr<Config> LoadConfig(const std::string& filename);
 
 #define VALUE int
-
-#endif //CONFIG_H

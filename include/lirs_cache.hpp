@@ -2,12 +2,13 @@
 
 #include <list>
 #include <unordered_map>
+#include "config.h"
 
 namespace lirs_cache {
 
     template <typename KeyT, typename Value>
     
-        class lirs_cache {
+        class lirs_cache : CacheFunc {
             private:
                 size_t     cache_sz_;
                 size_t     stack_sz_;

@@ -24,12 +24,13 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    int* numbers = (int*)calloc(count, sizeof(int));
+    int* numbers = (int*)calloc(count, sizeof(int)); // change this, все со
+    
     for(size_t i = 0; i < count; i++) std::cin >> numbers[i];
 
     int miss = RunCache(cache, count, numbers);
-    free(numbers);
-    DestroyCache(cache);
+    free(numbers); //!!!change this
+    DestroyCache(cache); // and this
 
     if(miss < 0) exit(EXIT_FAILURE);
 
