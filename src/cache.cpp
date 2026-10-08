@@ -7,27 +7,33 @@
 
 #include "config.h"
 #include "cache.h"
+
+#if 0
+
 #include "lirs_cache.hpp"
 #include "2Q_cache.hpp"
 
-struct Cache_LRU : CacheFunc
+#endif
+
+template <typename T>
+struct Cache_LRU : CacheFunc<T>
 {
     size_t size;
 
-    std::list<VALUE> values;
+    std::list<T> values;
 
-    std::unordered_map<VALUE, std::list<VALUE>::iterator> cache;
+    std::unordered_map<T, typename std::list<T>::iterator> cache;
 
     Cache_LRU(size_t size) : size(size) {}
 
-    int GetValue(VALUE value) override
+    int GetValue(T value) override
     {
         auto it = cache.find(value);
 
         if (it != cache.end())
         {
             values.splice(values.begin(), values, it->second);
-           
+
             it->second = values.begin();
 
             return 0;
@@ -35,8 +41,8 @@ struct Cache_LRU : CacheFunc
 
         int miss = 0;
 
-        if (next != NULL)
-            miss += next->GetValue(value);
+        if (this->next != NULL)
+            miss += this->next->GetValue(value);
 
         miss += 1;
 
@@ -45,7 +51,7 @@ struct Cache_LRU : CacheFunc
 
         if (values.size() > size)
         {
-            VALUE old = values.back();
+            T old = values.back();
             values.pop_back();
             cache.erase(old);
         }
@@ -54,15 +60,16 @@ struct Cache_LRU : CacheFunc
     }
 };
 
-Cache* CreateCache(std::unique_ptr<Config> config)
+template <typename T>
+Cache<T>* CreateCache(std::unique_ptr<Config> config)
 {
-    if(!config) return NULL;// nullptr 
+    if(!config) return nullptr;
 
-    Cache* cache = (Cache*)calloc(1, sizeof(Cache));
-    if(!cache) return NULL;
+    Cache<T>* cache = new Cache<T>;
+    if(!cache) return nullptr;
 
-    cache->layers_count = config->layers.size();// какая-то поебень, убрать все аллокации calloc
-    cache->layers = (CacheFunc**)calloc(cache->layers_count, sizeof(CacheFunc*));//
+    cache->layers_count = config->layers.size();
+    cache->layers = std::vector<CacheFunc<T>*>(cache->layers_count);
 
     for(size_t i = 0; i < cache->layers_count; i++)
     {
@@ -80,7 +87,7 @@ Cache* CreateCache(std::unique_ptr<Config> config)
             break;
         #endif
         case LAYER_LRU:
-            cache->layers[i] = new Cache_LRU(config->layers[i].size);;
+            cache->layers[i] = new Cache_LRU<T>(config->layers[i].size);
             break;
         #if 0
         case LAYER_LIRS:
@@ -102,19 +109,8 @@ Cache* CreateCache(std::unique_ptr<Config> config)
     return cache;
 }
 
-void DestroyCache(Cache* cache)
-{
-    if(!cache) return;
-
-    for(size_t i = 0; i < cache->layers_count; i++)
-    {
-        delete cache->layers[i];
-    }
-    free(cache->layers);
-    free(cache);
-}
-
-int RunCache(Cache* cache, size_t count, VALUE* numbers)
+template <typename T>
+int RunCache(Cache<T>* cache, size_t count, std::vector<T> values)
 {
     if(!cache) return -1;
 
@@ -123,7 +119,7 @@ int RunCache(Cache* cache, size_t count, VALUE* numbers)
     for(size_t i = 0; i < count; i++)
     {
         int j;
-        miss += cache->layers[0]->LookUpUpdate();
+        miss += cache->layers[0]->GetValue(values[i]);
     }
 
     return (int)miss;

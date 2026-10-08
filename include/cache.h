@@ -1,22 +1,30 @@
 #pragma once
 
+#include <vector>
+
 #include "config.h"
 
+template <typename T>
 struct CacheFunc
 {
-    CacheFunc* next;
+    CacheFunc<T>* next;
 
-    virtual ~CacheFunc() = default; 
-    virtual VALUE GetValue(VALUE value) = 0;
+    virtual ~CacheFunc() = default;
+    virtual int GetValue(T) = 0;
 };
 
+template <typename T>
 struct Cache
 {
     size_t layers_count;
-    CacheFunc** layers;
+    std::vector<CacheFunc<T>*> layers;
 };
 
-Cache* CreateCache(std::unique_ptr<Config>);
-void DestroyCache(Cache*);
+template <typename T>
+Cache<T>* CreateCache(std::unique_ptr<Config>);
 
-int RunCache(Cache*, size_t, int*);
+template <typename T>
+void DestroyCache(Cache<T>*);
+
+template <typename T>
+int RunCache(Cache<T>* cache, size_t count, std::vector<T> values);

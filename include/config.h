@@ -25,5 +25,3 @@ struct Config
 };
 
 std::unique_ptr<Config> LoadConfig(const std::string& filename);
-
-#define VALUE int
