@@ -47,10 +47,10 @@ std::unique_ptr<Config> LoadConfig(const std::string& filename)
         std::string type_name;
         if (!(file >> layer.size >> type_name)) return nullptr;
 
-        try 
+        try
         {
             layer.type = ParseLayerType(type_name);
-        } 
+        }
         catch (const std::invalid_argument&) 
         {
             return nullptr;

@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "config.h"
-#include "cache.h"
+#include "cache.hpp"
 
 static const char* CONFIG_FILENAME = "config.cfg";
 

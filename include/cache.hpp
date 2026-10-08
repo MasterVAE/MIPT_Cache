@@ -1,19 +1,31 @@
-#include <stdio.h>
+#pragma once
+
+#include <vector>
 #include <list>
 #include <unordered_map>
-#include <unordered_set>
-#include <limits>
 #include <memory>
+#include <cstddef>
+
 
 #include "config.h"
-#include "cache.h"
 
-#if 0
+template <typename T>
+struct CacheFunc
+{
+    CacheFunc<T>* next;
 
-#include "lirs_cache.hpp"
-#include "2Q_cache.hpp"
+    virtual ~CacheFunc() = default;
+    virtual int GetValue(T) = 0;
+};
 
-#endif
+
+template <typename T>
+struct Cache
+{
+    size_t layers_count;
+    std::vector<CacheFunc<T>*> layers;
+};
+
 
 template <typename T>
 struct Cache_LRU : CacheFunc<T>
@@ -59,6 +71,11 @@ struct Cache_LRU : CacheFunc<T>
         return miss;
     }
 };
+
+
+
+template <typename T>
+void DestroyCache(Cache<T>*);
 
 template <typename T>
 Cache<T>* CreateCache(std::unique_ptr<Config> config)
@@ -114,7 +131,7 @@ int RunCache(Cache<T>* cache, size_t count, std::vector<T> values)
 {
     if(!cache) return -1;
 
-    size_t miss = 0;
+    int miss = 0;
 
     for(size_t i = 0; i < count; i++)
     {
@@ -122,5 +139,5 @@ int RunCache(Cache<T>* cache, size_t count, std::vector<T> values)
         miss += cache->layers[0]->GetValue(values[i]);
     }
 
-    return (int)miss;
+    return miss;
 }
