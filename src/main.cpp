@@ -17,6 +17,12 @@ int main()
     std::unique_ptr<Config> config = LoadConfig(CONFIG_FILENAME);
     if(!config) exit(EXIT_FAILURE);
 
+
+    std::vector<size_t> layers;
+    for(auto layer : config->layers)
+    {
+        layers.push_back(layer.size);
+    }
     size_t first_layer_size = config->layers[0].size;
 
     CacheAPI<int, int>* system_cache = CreateCache<int, int>(std::move(config));
@@ -32,7 +38,7 @@ int main()
     for(size_t i = 0; i < count; i++) std::cin >> numbers[i];
 
     int miss = RunCache(system_cache, count, numbers);
-    int perfect_miss = RunPerfectCache(first_layer_size, numbers);
+    int perfect_miss = RunPerfectCache(layers, numbers);
 
     std::cout << "Misses: " << miss << std::endl;
     std::cout << "Perfect cache misses: " << perfect_miss << std::endl;

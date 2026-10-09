@@ -7,6 +7,10 @@
 #include <cstddef>
 #include <iostream>
 #include <limits>
+#include <set>
+#include <cstddef>
+#include <utility>
+#include <iterator>
 
 
 
@@ -76,59 +80,79 @@ int RunCache(CacheAPI<KeyT, Value>* current_top, size_t count, std::vector<Value
     return miss;
 }
 
+
+
 template <typename Value>
-int RunPerfectCache(size_t capacity, std::vector<Value> values)
-{
-    if (capacity == 0)
-        return static_cast<int>(values.size());
+static int SimulatePerfectCache(const std::vector<Value>& requests,
+                         size_t capacity,
+                         std::vector<Value>& misses) {
+    if (capacity == 0) {
+        misses = requests;
+        return static_cast<int>(requests.size());
+    }
 
-    const size_t n = values.size();
+    const size_t n = requests.size();
+    const size_t INF = n + 1;
 
-    std::unordered_map<Value, std::vector<size_t>> positions;
-    for (size_t i = 0; i < n; ++i)
-        positions[values[i]].push_back(i);
-
-    std::unordered_map<Value, size_t> ptr;
-    for (auto& kv : positions)
-        ptr[kv.first] = 0;
+    std::vector<size_t> next(n, INF);
+    std::unordered_map<Value, size_t> last;
+    for (size_t i = n; i-- > 0; ) {
+        auto it = last.find(requests[i]);
+        if (it != last.end()) {
+            next[i] = it->second;
+        }
+        last[requests[i]] = i;
+    }
 
     std::unordered_map<Value, size_t> cache;
 
-    int miss = 0;
+    std::set<std::pair<size_t, Value>> evictSet;
 
-    for (size_t i = 0; i < n; ++i)
-    {
-        const Value& key = values[i];
-        size_t& p = ptr[key];
+    int missCount = 0;
 
-        size_t next_use = std::numeric_limits<size_t>::max();
-        if (p + 1 < positions[key].size())
-            next_use = positions[key][p + 1];
-        ++p;
+    for (size_t i = 0; i < n; ++i) {
+        const Value& val = requests[i];
+        auto it = cache.find(val);
 
-        auto it = cache.find(key);
-        if (it != cache.end())
-        {
-            it->second = next_use;
-        }
-        else
-        {
-            ++miss;
+        if (it != cache.end()) {
+            size_t oldNext = it->second;
+            evictSet.erase({oldNext, val});
+            it->second = next[i];
+            evictSet.insert({next[i], val});
+        } else {
+            ++missCount;
+            misses.push_back(val);
 
-            if (cache.size() >= capacity)
-            {
-                auto victim = cache.begin();
-                for (auto cit = cache.begin(); cit != cache.end(); ++cit)
-                {
-                    if (cit->second > victim->second)
-                        victim = cit;
-                }
-                cache.erase(victim);
+            if (cache.size() == capacity) {
+                auto evictIt = std::prev(evictSet.end());
+                Value evictVal = evictIt->second;
+                cache.erase(evictVal);
+                evictSet.erase(evictIt);
             }
 
-            cache[key] = next_use;
+            cache[val] = next[i];
+            evictSet.insert({next[i], val});
         }
     }
 
-    return miss;
+    return missCount;
+}
+
+
+template <typename Value>
+int RunPerfectCache(std::vector<size_t> capacity, std::vector<Value> values) {
+    int totalMisses = 0;
+    std::vector<Value> requests = std::move(values);
+
+    for (size_t cap : capacity) {
+        if (requests.empty()) {
+            break;
+        }
+
+        std::vector<Value> misses;
+        totalMisses += SimulatePerfectCache(requests, cap, misses);
+        requests = std::move(misses);
+    }
+
+    return totalMisses;
 }
