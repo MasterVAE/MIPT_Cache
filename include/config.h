@@ -4,8 +4,7 @@
 #include <vector>
 #include <memory>
 
-enum LayerType
-{
+enum LayerType {
     LAYER_ARC,
     LAYER_2Q,
     LAYER_LFU,
@@ -19,8 +18,8 @@ struct ConfigLayer
     LayerType type;
 };
 
-struct Config
-{
+struct Config {
+
     std::vector<ConfigLayer> layers;
 };
 

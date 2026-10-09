@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cache.hpp"
 #include <list>
 #include <unordered_map>
 #include "config.h"
@@ -7,8 +8,7 @@
 namespace lirs_cache {
 
     template <typename KeyT, typename Value>
-    
-        class lirs_cache : CacheFunc {
+        class lirs_cache : public CacheAPI<KeyT, Value> {
             private:
                 size_t     cache_sz_;
                 size_t     stack_sz_;
@@ -17,13 +17,29 @@ namespace lirs_cache {
                 size_t lir_space_sz_;
                 
             public:
-                lirs_cache(size_t cache_sz_) : cache_sz_(cache_sz_) {
+                lirs_cache(size_t sz, CacheAPI<KeyT, Value>* next_cache_level = nullptr) : 
+                                  CacheAPI<KeyT, Value>(next_cache_level), cache_sz_(sz) {
+                
                     queue_sz_ = std::max<size_t>(1, cache_sz_ / 100);
                     stack_sz_ = std::max<size_t>(1, cache_sz_ * 3);
                     lir_space_sz_ = std::max<size_t>(1, (cache_sz_ * 99) / 100);
                     
                     lir_count_ = 0;
                 }
+
+                bool Request(KeyT key) override {
+                    auto fetch_from_next = [&] (KeyT key) -> Value {
+                        if (this->next_cache_level != nullptr) {
+                            this->next_cache_level->Request(key);
+                        }
+                            return static_cast<Value>(key);
+                    };
+                        
+                        bool is_hit = LookUpUpdate(key, fetch_from_next);
+
+                        return !is_hit;
+                }
+
                 enum class ListIt {RES_HIR, LIR, NON_RES_HIR};
 
                 struct node {
