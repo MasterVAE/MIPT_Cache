@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <memory>
 #include <cstddef>
+#include <iostream>
 
 
 
@@ -26,14 +27,13 @@ struct CacheAPI
 #include "config.h"
 
 template <typename KeyT, typename Value>
-CacheAPI<KeyT, Value>* CreateCache(std::unique_ptr<Config> config){
+CacheAPI<KeyT, Value>* CreateCache(std::unique_ptr<Config> config) {
     assert(config);
 
     CacheAPI<KeyT, Value>* current_top = nullptr;
-    size_t sz = config->layers.size();
+    int sz = config->layers.size();
 
-    for (size_t cache_level = static_cast<size_t>(sz) - 1; cache_level >= 0; --cache_level) {
-
+    for (int cache_level = sz - 1; cache_level >= 0; --cache_level) {
         switch (config->layers[cache_level].type) {
 #if 0 
         case LAYER_LFU:
@@ -49,7 +49,6 @@ CacheAPI<KeyT, Value>* CreateCache(std::unique_ptr<Config> config){
         case LAYER_LIRS:
             current_top = new lirs_cache::lirs_cache<KeyT, Value>(sz, current_top);
             break;
-
         default:
             break;
         }  

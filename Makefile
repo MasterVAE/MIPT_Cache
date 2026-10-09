@@ -4,7 +4,7 @@ DBG = DEBUG
 
 TARGET  = cache
 BUILD_DIR = build
-SRCS    = src/main.cpp src/config.cpp 
+SRCS    = src/main.cpp src/config.cpp
 OBJS    = $(patsubst src/%.c,$(BUILD_DIR)/%.o,$(SRCS))
 
 CC = g++
@@ -85,7 +85,7 @@ endif
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	@$(CC) $(CFLAGS) -o $@ $(OBJS)
+	@$(CC) $(CFLAGS) -o $@ $(OBJS) -lgtest -lgtest_main -pthread
 
 $(BUILD_DIR)/%.o: src/%.c | $(BUILD_DIR)
 	@$(CC) $(CFLAGS) -c $< -o $@

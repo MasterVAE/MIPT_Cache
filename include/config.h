@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <memory>
+#include <string>
 
 enum LayerType {
     LAYER_ARC,
@@ -12,14 +13,12 @@ enum LayerType {
     LAYER_LIRS
 };
 
-struct ConfigLayer
-{
+struct ConfigLayer {
     size_t size;
     LayerType type;
 };
 
 struct Config {
-
     std::vector<ConfigLayer> layers;
 };
 

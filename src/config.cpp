@@ -1,3 +1,4 @@
+#include <iostream>
 #include <fstream>
 #include <memory>
 #include <stdexcept>
@@ -44,6 +45,7 @@ std::unique_ptr<Config> LoadConfig(const std::string& filename)
 
     for (auto& layer : config->layers) 
     {
+
         std::string type_name;
         if (!(file >> layer.size >> type_name)) return nullptr;
 
@@ -56,6 +58,7 @@ std::unique_ptr<Config> LoadConfig(const std::string& filename)
             return nullptr;
         }
     }
+
 
     return config;
 }
