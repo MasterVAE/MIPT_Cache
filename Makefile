@@ -4,7 +4,7 @@ DBG = DEBUG
 
 TARGET  = cache
 BUILD_DIR = build
-SRCS    = src/main.cpp src/config.cpp
+SRCS    = src/main.cpp src/config.cpp tests/unit/unit_cache_test.cpp tests/test_runner.cpp
 OBJS    = $(patsubst src/%.c,$(BUILD_DIR)/%.o,$(SRCS))
 
 CC = g++

@@ -5,11 +5,15 @@
 
 #include "config.h"
 #include "cache.hpp"
+#include "tests.hpp"
 
 static const char* CONFIG_FILENAME = "config.cfg";
 
 int main()
 {
+
+    RunUnitTests();
+
     std::unique_ptr<Config> config = LoadConfig(CONFIG_FILENAME);
     if(!config) exit(EXIT_FAILURE);
 

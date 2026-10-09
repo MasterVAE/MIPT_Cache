@@ -9,3 +9,6 @@ struct CacheTestCase {
     std::vector<int> requests;
     int expected_misses;
 };
+
+
+int RunUnitTests();
