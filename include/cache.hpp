@@ -16,7 +16,10 @@ struct CacheAPI
 
     CacheAPI(CacheAPI<KeyT, Value>* next = nullptr) : next_cache_level(next) {}
 
-    virtual ~CacheAPI() = default;
+    virtual ~CacheAPI()
+    {
+        delete next_cache_level;
+    }
     virtual bool Request(KeyT) = 0;
 
     CacheAPI(const CacheAPI&) = delete;
