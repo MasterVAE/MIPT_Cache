@@ -39,9 +39,8 @@ CacheAPI<KeyT, Value>* CreateCache(std::unique_ptr<Config> config) {
     assert(config);
 
     CacheAPI<KeyT, Value>* current_top = nullptr;
-    int sz = config->layers.size();
 
-    for (int cache_level = sz - 1; cache_level >= 0; --cache_level) {
+    for (int cache_level = config->layers.size() - 1; cache_level >= 0; --cache_level) {
         switch (config->layers[cache_level].type) {
 #if 0
         case LAYER_LFU:
@@ -55,7 +54,9 @@ CacheAPI<KeyT, Value>* CreateCache(std::unique_ptr<Config> config) {
             break;
 #endif
         case LAYER_LIRS:
-            current_top = new lirs_cache::lirs_cache<KeyT, Value>(sz, current_top);
+            current_top = new lirs_cache::lirs_cache<KeyT, Value>(
+                                                        config->layers[cache_level].size, 
+                                                        current_top);
             break;
         default:
             break;

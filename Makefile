@@ -94,7 +94,7 @@ $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
 
 run: all
-	@./$(TARGET)
+	@./$(TARGET) config.cfg
 
 clean:
 	@rm -rf $(BUILD_DIR) $(TARGET)

@@ -7,16 +7,14 @@
 #include "cache.hpp"
 #include "tests.hpp"
 
-static const char* CONFIG_FILENAME = "config.cfg";
-
-int main()
+int main(int argc, char* argv[])
 {
-
     RunUnitTests();
 
-    std::unique_ptr<Config> config = LoadConfig(CONFIG_FILENAME);
-    if(!config) exit(EXIT_FAILURE);
+    if(argc < 2) exit(EXIT_FAILURE);
 
+    std::unique_ptr<Config> config = LoadConfig(argv[1]);
+    if(!config) exit(EXIT_FAILURE);
 
     std::vector<size_t> layers;
     for(auto layer : config->layers)
