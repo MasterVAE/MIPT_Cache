@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Run cache configurations over reproducible traces and record miss counts in CSV."""
+"""Run cache configurations over reproducible traces and record miss counts in CSV.
+
+Supports single algorithms (LIRS, ARC, 2Q, LFU, ...) as well as arbitrary
+per-level combinations of them.  Use --algo-mode to control how algorithm
+tuples are generated across cache levels.
+"""
 
 from __future__ import annotations
 
@@ -15,6 +20,8 @@ from pathlib import Path
 from typing import Iterator
 
 from generate_workloads import WORKLOADS, generate_workload, write_trace
+
+DEFAULT_ALGORITHMS = "LIRS,ARC,2Q,LFU"
 
 CSV_FIELDS = [
     "case_id", "workload", "seed", "request_count", "keyspace",
@@ -79,7 +86,34 @@ def make_config(algorithms: tuple[str, ...], capacities: tuple[int, ...]) -> str
     return "\n".join(lines) + "\n"
 
 
-def iter_configs(algorithms: list[str], levels: list[int], totals: list[int]):
+def iter_algo_tuples(
+    algorithms: list[str],
+    level_count: int,
+    mode: str,
+) -> Iterator[tuple[str, ...]]:
+    """Yield algorithm tuples for one level count according to --algo-mode.
+
+    mode = "all"     -> every ordered combination (e.g. LIRS>ARC>LFU)
+    mode = "uniform" -> same algorithm on every level (e.g. ARC>ARC>ARC)
+    mode = "mixed"   -> only combinations using >= 2 distinct algorithms
+    """
+    if mode == "uniform":
+        for algorithm in algorithms:
+            yield (algorithm,) * level_count
+        return
+
+    for combo in itertools.product(algorithms, repeat=level_count):
+        if mode == "mixed" and len(set(combo)) == 1:
+            continue
+        yield combo
+
+
+def iter_configs(
+    algorithms: list[str],
+    levels: list[int],
+    totals: list[int],
+    algo_mode: str = "all",
+):
     for level_count in levels:
         for total in totals:
             if total < level_count:
@@ -90,7 +124,7 @@ def iter_configs(algorithms: list[str], levels: list[int], totals: list[int]):
                 if split:
                     capacity_options.add(split)
             for capacities in sorted(capacity_options):
-                for algorithm_tuple in itertools.product(algorithms, repeat=level_count):
+                for algorithm_tuple in iter_algo_tuples(algorithms, level_count, algo_mode):
                     yield algorithm_tuple, capacities, total
 
 
@@ -123,7 +157,21 @@ def read_completed_cases(path: Path) -> set[str]:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, required=True, help="Path to compiled C++ executable")
-    parser.add_argument("--algorithms", default="LIRS", help="Comma-separated supported algorithms (default: LIRS)")
+    parser.add_argument(
+        "--algorithms",
+        default=DEFAULT_ALGORITHMS,
+        help=f"Comma-separated supported algorithms (default: {DEFAULT_ALGORITHMS}). "
+             "Each level may independently use any of these.",
+    )
+    parser.add_argument(
+        "--algo-mode",
+        choices=("all", "uniform", "mixed"),
+        default="all",
+        help="How to combine algorithms across cache levels: "
+             "'all' (every ordered combination, default), "
+             "'uniform' (same algorithm at every level), "
+             "'mixed' (only combinations using at least two distinct algorithms).",
+    )
     parser.add_argument("--levels", default="1,2,3", help="Level counts to test (default: 1,2,3)")
     parser.add_argument("--total-capacities", default="32,64,128", help="Total capacities to test")
     parser.add_argument("--workloads", default=",".join(WORKLOADS), help="Comma-separated workload names")
@@ -152,6 +200,8 @@ def parse_args() -> argparse.Namespace:
     invalid_workloads = sorted(set(args.workloads) - set(WORKLOADS))
     if invalid_workloads:
         parser.error(f"Unknown workload(s): {', '.join(invalid_workloads)}")
+    if args.algo_mode == "mixed" and all(level_count < 2 for level_count in args.levels):
+        parser.error("--algo-mode mixed requires at least one level count >= 2")
     return args
 
 
@@ -175,12 +225,18 @@ def main() -> int:
     completed = set() if args.no_resume else read_completed_cases(csv_path)
     needs_header = not csv_path.exists() or csv_path.stat().st_size == 0
 
-    configurations = list(iter_configs(args.algorithms, args.levels, args.total_capacities))
+    configurations = list(iter_configs(
+        args.algorithms, args.levels, args.total_capacities, args.algo_mode,
+    ))
     planned_runs = len(configurations) * len(args.workloads) * len(args.seeds)
     if args.max_runs:
         planned_runs = min(planned_runs, args.max_runs)
     print(f"Configurations: {len(configurations)}; planned runs: {planned_runs}; output: {csv_path}")
     print(f"Algorithms selected: {', '.join(args.algorithms)}")
+    print(f"Algorithm combination mode: {args.algo_mode}")
+    if not configurations:
+        print("WARNING: no configurations were generated. Check --levels / --algo-mode.")
+        return 1
     print("Only use algorithms that the compiled C++ program currently supports.")
 
     executed = skipped = failed = 0
@@ -264,7 +320,7 @@ def main() -> int:
                     print(
                         f"[{executed + failed + skipped}/{planned_runs}] "
                         f"{workload} seed={seed} alg={'>'.join(algorithm_tuple)} "
-                        f"cap={'>' .join(map(str, capacities))} "
+                        f"cap={'>'.join(map(str, capacities))} "
                         f"total_miss={row['total_miss']} perfect_miss={row['perfect_miss']} "
                         f"status={row['status']}"
                     )

@@ -9,7 +9,6 @@ enum LayerType {
     LAYER_ARC,
     LAYER_2Q,
     LAYER_LFU,
-    LAYER_LRU,
     LAYER_LIRS
 };
 

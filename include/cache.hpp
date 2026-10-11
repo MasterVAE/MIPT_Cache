@@ -40,17 +40,10 @@ CacheAPI<KeyT, Value>* CreateCache(std::unique_ptr<Config> config) {
 
     for (int cache_level = config->layers.size() - 1; cache_level >= 0; --cache_level) {
         switch (config->layers[cache_level].type) {
-#if 0
+
         case LAYER_LFU:
-            current_top = new Cache_LFU(sz, );
-            break;
         case LAYER_ARC:
-            current_top = new Cache_LFU<KeyT, Value>(sz, current_top);
-            break;
-         case LAYER_2Q:
-            current_top = new cache_2Q_<KeyT, Value>(sz, current_top);
-            break;
-#endif
+        case LAYER_2Q:
         case LAYER_LIRS:
             current_top = new lirs_cache::lirs_cache<KeyT, Value>(
                                                         config->layers[cache_level].size, 
