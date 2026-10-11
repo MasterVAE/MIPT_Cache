@@ -39,7 +39,8 @@ namespace lirs_cache {
                     size_t misses = 0;
                     auto fetch_from_next = [&] (KeyT k) -> Value {
                         if (this->next_cache_level != nullptr) {
-                            this->next_cache_level->Request(k);
+                          
+                             misses = this->next_cache_level->Request(k);
                         }
                             return static_cast<Value>(k);
                     };
