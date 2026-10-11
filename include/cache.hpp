@@ -33,6 +33,10 @@ struct CacheAPI
 
 #include "lirs_cache.hpp"
 #include "config.h"
+#include "arc_cache.hpp"
+#include "lfu_cache.hpp"
+#include "2Q_cache.hpp"
+
 
 template <typename KeyT, typename Value>
 CacheAPI<KeyT, Value>* CreateCache(std::unique_ptr<Config> config) {
@@ -44,12 +48,26 @@ CacheAPI<KeyT, Value>* CreateCache(std::unique_ptr<Config> config) {
         switch (config->layers[cache_level].type) {
 
         case LAYER_LFU:
+            current_top = new lfu_cache::lfu_cache<KeyT, Value>(
+                                config->layers[cache_level].size, 
+                                current_top);
+            break;
         case LAYER_ARC:
+            current_top = new arc_cache::arc_cache<KeyT, Value>(
+                                config->layers[cache_level].size, 
+                                current_top);
+            break;
+        
         case LAYER_2Q:
+                current_top = new cache_2Q::cache_2Q_<KeyT, Value>(
+                                config->layers[cache_level].size, 
+                                current_top);
+        
+            break;
         case LAYER_LIRS:
             current_top = new lirs_cache::lirs_cache<KeyT, Value>(
-                                                        config->layers[cache_level].size, 
-                                                        current_top);
+                                config->layers[cache_level].size, 
+                                current_top);
             break;
         default:
             break;

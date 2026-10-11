@@ -6,13 +6,14 @@
 
 namespace lfu_cache {
     template <typename KeyT , typename Value>
-    class lfu_cache{
+    class lfu_cache : public CacheAPI<KeyT, Value> {
         size_t cache_sz_;
         size_t min_freq_;
 
         public:
 
-        lfu_cache (size_t sz): cache_sz_(sz), min_freq_(0) {}
+        lfu_cache (size_t sz, CacheAPI<KeyT, Value>* next_cache_level = nullptr) : 
+           cache_sz_(sz), min_freq_(0), CacheAPI<KeyT, Value>(next_cache_level) {}
           struct node {
                     Value val;
                     size_t frequent_count; 
@@ -29,20 +30,24 @@ namespace lfu_cache {
                 std::unordered_map<KeyT, node> hash_;
                 std::unordered_map<size_t, std::list<KeyT>> freq_map_;
 
-               
-                bool Request(KeyT key) override {
+                   int Request(KeyT key) override {
+                    size_t misses = 0;
                     auto fetch_from_next = [&] (KeyT k) -> Value {
                         if (this->next_cache_level != nullptr) {
-                            this->next_cache_level->Request(k);
+                          
+                             misses = this->next_cache_level->Request(k);
                         }
                             return static_cast<Value>(k);
                     };
-                        
-                        bool is_hit = LookUpUpdate(key, fetch_from_next);
-
-                        return !is_hit;
+                    
+                    bool is_hit = LookUpUpdate(key, fetch_from_next);
+                    if (is_hit) {
+                        return 0;
+                    }
+                    
+                    return 1 + misses;
                 }
-                             
+
                 bool isCacheFull() { return hash_.size() >= cache_sz_; }
                 void UpdateFreq(KeyT key){
                     auto hit_it = hash_.find(key);

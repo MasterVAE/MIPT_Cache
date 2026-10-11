@@ -5,12 +5,13 @@
 
 namespace arc_cache {
     template <typename KeyT, typename Value>
-    class arc_cache {
+    class arc_cache : public CacheAPI<KeyT, Value>{
 
         size_t cache_sz_;
         
         public:
-            arc_cache (size_t sz) : cache_sz_{sz} {}
+            arc_cache (size_t sz, CacheAPI<KeyT, Value>* next_cache_level = nullptr) : 
+            cache_sz_{sz}, CacheAPI<KeyT, Value>(next_cache_level) {}
 
             std::list<KeyT> recent_list;
             std::list<KeyT> frequent_list;
@@ -35,6 +36,25 @@ namespace arc_cache {
             };
 
             std::unordered_map<KeyT, node> hash_;
+
+            int Request(KeyT key) override {
+                size_t misses = 0;
+                auto fetch_from_next = [&] (KeyT k) -> Value {
+                    if (this->next_cache_level != nullptr) {
+                      
+                         misses = this->next_cache_level->Request(k);
+                    }
+                        return static_cast<Value>(k);
+                };
+                
+                     
+                bool is_hit = LookUpUpdate(key, fetch_from_next);
+                if (is_hit) {
+                    return 0;
+                }
+                
+                return 1 + misses;
+            }
 
             bool isCacheFull()           { return (recent_list.size() + frequent_list.size()) >= cache_sz_; }
             bool isRecentHistoryFull()   { return recent_history.size() >= cache_sz_; }

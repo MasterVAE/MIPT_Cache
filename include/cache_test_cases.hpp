@@ -30,34 +30,30 @@ inline std::vector<CacheImplementation> GetCacheImplementations()
         }
     });
 
-    // Когда алгоритмы будут реализованы и будут наследоваться от CacheAPI,
-    // добавь их сюда по аналогии:
-    //
-    // caches.push_back({
-    //     "LRU",
-    //     [](size_t capacity) -> std::unique_ptr<TestCache>
-    //     {
-    //         return std::make_unique<LRUCache<int, int>>(capacity);
-    //     }
-    // });
-    //
-    // caches.push_back({
-    //     "2Q",
-    //     [](size_t capacity) -> std::unique_ptr<TestCache>
-    //     {
-    //         return std::make_unique<TwoQCache<int, int>>(capacity);
-    //     }
-    // });
-    //
-    // caches.push_back({
-    //     "LFU",
-    //     [](size_t capacity) -> std::unique_ptr<TestCache>
-    //     {
-    //         return std::make_unique<LFUCache<int, int>>(capacity);
-    //     }
-    // });
-    //
-    // Аналогично добавляется ARC.
+
+    caches.push_back({
+        "ARC",
+        [](size_t capacity) -> std::unique_ptr<TestCache>
+        {
+            return std::make_unique<arc_cache::arc_cache<int, int>>(capacity);
+        }
+    });
+        caches.push_back({
+        "2Q",
+        [](size_t capacity) -> std::unique_ptr<TestCache>
+        {
+            return std::make_unique<cache_2Q::cache_2Q_<int, int>>(capacity);
+        }
+        
+    });
+        caches.push_back({
+        "LFU",
+        [](size_t capacity) -> std::unique_ptr<TestCache>
+        {
+            return std::make_unique<lfu_cache::lfu_cache<int, int>>(capacity);
+        }
+    });
+        // Аналогично добавляется ARC.
 
     return caches;
 }
