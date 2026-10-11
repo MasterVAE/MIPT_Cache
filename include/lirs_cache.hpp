@@ -18,8 +18,16 @@ namespace lirs_cache {
                 
             public:
                 lirs_cache(size_t sz, CacheAPI<KeyT, Value>* next_cache_level = nullptr) : 
-                                  CacheAPI<KeyT, Value>(next_cache_level), cache_sz_(sz) {
-                
+                    CacheAPI<KeyT, Value>(next_cache_level), 
+                    cache_sz_(sz),
+                    stack_sz_(0), 
+                    queue_sz_(0), 
+                    lir_count_(0), 
+                    lir_space_sz_(0),
+                    stack(), 
+                    queue(), 
+                    hash_() 
+                    {
                     queue_sz_ = std::max<size_t>(1, cache_sz_ / 100);
                     stack_sz_ = std::max<size_t>(1, cache_sz_ * 3);
                     lir_space_sz_ = std::max<size_t>(1, (cache_sz_ * 99) / 100);
@@ -28,11 +36,11 @@ namespace lirs_cache {
                 }
 
                 bool Request(KeyT key) override {
-                    auto fetch_from_next = [&] (KeyT key) -> Value {
+                    auto fetch_from_next = [&] (KeyT k) -> Value {
                         if (this->next_cache_level != nullptr) {
-                            this->next_cache_level->Request(key);
+                            this->next_cache_level->Request(k);
                         }
-                            return static_cast<Value>(key);
+                            return static_cast<Value>(k);
                     };
                         
                         bool is_hit = LookUpUpdate(key, fetch_from_next);
@@ -126,7 +134,6 @@ namespace lirs_cache {
                 bool LookUpUpdate(KeyT key, F slow_get_page) {
                     auto hit_it = hash_.find(key);
                   
-
                     if (hit_it != hash_.end()) {
 
                         auto key = hit_it->first;

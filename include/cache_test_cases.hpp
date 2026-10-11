@@ -26,8 +26,7 @@ inline std::vector<CacheImplementation> GetCacheImplementations()
         [](size_t capacity) -> std::unique_ptr<TestCache>
         {
             return std::make_unique<
-                lirs_cache::lirs_cache<int, int>
-            >(capacity);
+                lirs_cache::lirs_cache<int, int>>(capacity);
         }
     });
 
