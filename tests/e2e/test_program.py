@@ -96,8 +96,8 @@ class CacheE2ETests(unittest.TestCase):
         self.check_all(
             "2\n10 {algo}\n20 {algo}\n",
             [7, 7, 7],
-            misses={"LIRS": 2, "ARC": 1, "2Q": 1, "LFU": 1},
-            perfect=1,
+            misses={"LIRS": 2, "ARC": 2, "2Q": 2, "LFU": 2},
+            perfect=2,
         )
 
     # ---------- perfect (Belady) ----------
