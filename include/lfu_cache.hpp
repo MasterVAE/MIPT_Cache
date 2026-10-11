@@ -29,6 +29,20 @@ namespace lfu_cache {
                 std::unordered_map<KeyT, node> hash_;
                 std::unordered_map<size_t, std::list<KeyT>> freq_map_;
 
+               
+                bool Request(KeyT key) override {
+                    auto fetch_from_next = [&] (KeyT k) -> Value {
+                        if (this->next_cache_level != nullptr) {
+                            this->next_cache_level->Request(k);
+                        }
+                            return static_cast<Value>(k);
+                    };
+                        
+                        bool is_hit = LookUpUpdate(key, fetch_from_next);
+
+                        return !is_hit;
+                }
+                             
                 bool isCacheFull() { return hash_.size() >= cache_sz_; }
                 void UpdateFreq(KeyT key){
                     auto hit_it = hash_.find(key);

@@ -35,17 +35,22 @@ namespace lirs_cache {
                     lir_count_ = 0;
                 }
 
-                bool Request(KeyT key) override {
+                int Request(KeyT key) override {
+                    size_t misses = 0;
                     auto fetch_from_next = [&] (KeyT k) -> Value {
                         if (this->next_cache_level != nullptr) {
                             this->next_cache_level->Request(k);
                         }
                             return static_cast<Value>(k);
                     };
-                        
-                        bool is_hit = LookUpUpdate(key, fetch_from_next);
-
-                        return !is_hit;
+                    
+                         
+                    bool is_hit = LookUpUpdate(key, fetch_from_next);
+                    if (is_hit) {
+                        return 0;
+                    }
+                    
+                    return 1 + misses;
                 }
 
                 enum class ListIt {RES_HIR, LIR, NON_RES_HIR};
