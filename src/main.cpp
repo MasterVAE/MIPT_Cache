@@ -9,7 +9,9 @@
 
 int main(int argc, char* argv[])
 {
+#if 1
     RunUnitTests();
+#endif
 
     if(argc < 2) exit(EXIT_FAILURE);
 

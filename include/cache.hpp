@@ -12,8 +12,6 @@
 #include <utility>
 #include <iterator>
 
-
-
 template <typename KeyT, typename Value>
 struct CacheAPI
 {
@@ -84,9 +82,10 @@ int RunCache(CacheAPI<KeyT, Value>* current_top, size_t count, std::vector<Value
 
 
 template <typename Value>
-static int SimulatePerfectCache(const std::vector<Value>& requests,
-                         size_t capacity,
-                         std::vector<Value>& misses) {
+static int SimulatePerfectCache(
+                        const std::vector<Value>& requests,
+                        size_t capacity,
+                        std::vector<Value>& misses) {
     if (capacity == 0) {
         misses = requests;
         return static_cast<int>(requests.size());

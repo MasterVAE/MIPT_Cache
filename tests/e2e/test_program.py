@@ -20,7 +20,7 @@ class CacheE2ETests(unittest.TestCase):
             (workdir / "config.cfg").write_text(config, encoding="utf-8")
             input_data = f"{len(requests)}\n{' '.join(map(str, requests))}\n"
             return subprocess.run(
-                [str(BINARY)],
+                [str(BINARY), "config.cfg"],
                 input=input_data,
                 text=True,
                 capture_output=True,
