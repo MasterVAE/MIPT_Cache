@@ -63,12 +63,17 @@ namespace arc_cache {
             size_t target_recent_size = 0;
 
             void Replace() {
-                auto evicted_recent_key = hash_.find(recent_list.back());
                 if (recent_list.size() > target_recent_size) {
+
+                    auto evicted_recent_key = hash_.find(recent_list.back());
+
                     if (isRecentHistoryFull()) {
+                        auto elem_to_remove = hash_.find(recent_history.back());
+
+                        hash_.erase(elem_to_remove); 
                         recent_history.pop_back();
-                        hash_.erase(evicted_recent_key); 
                     }
+
                 recent_history.splice(recent_history.begin(), recent_list, 
                                                       evicted_recent_key->second.it);
                 
@@ -77,8 +82,10 @@ namespace arc_cache {
                 } else {
                 auto evicted_frequent_key = hash_.find(frequent_list.back());
                     if (isFrequentHistoryFull()) {
+                        auto elem_to_remove = hash_.find(frequent_history.back());
+
+                        hash_.erase(elem_to_remove); 
                         frequent_history.pop_back();
-                        hash_.erase(evicted_frequent_key); 
                     }
 
                     frequent_history.splice(frequent_history.begin(), frequent_list, 
