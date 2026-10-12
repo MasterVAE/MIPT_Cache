@@ -63,7 +63,7 @@ namespace arc_cache {
             size_t target_recent_size = 0;
 
             void Replace() {
-                if (recent_list.size() > target_recent_size) {
+                if (recent_list.size() >= std::max<size_t>(1, target_recent_size)) {
 
                     auto evicted_recent_key = hash_.find(recent_list.back());
 
@@ -80,8 +80,10 @@ namespace arc_cache {
                 evicted_recent_key->second.state = listIt::B1_RECENT_GHOST;
                 evicted_recent_key->second.val = Value{};
                 } else {
-                auto evicted_frequent_key = hash_.find(frequent_list.back());
+                    auto evicted_frequent_key = hash_.find(frequent_list.back());
+
                     if (isFrequentHistoryFull()) {
+
                         auto elem_to_remove = hash_.find(frequent_history.back());
 
                         hash_.erase(elem_to_remove); 
@@ -121,6 +123,15 @@ namespace arc_cache {
 
                     if (isCacheFull()) {
                         Replace();
+                        hit_it = hash_.find(key); 
+                        if (hit_it == hash_.end()) {
+
+                            frequent_list.push_front(key);
+                            hash_.emplace(key, node(slow_get_page(key),
+                            listIt::T2_FREQUENT, frequent_list.begin()));
+                            return false;
+                        }
+
                     }
 
                     hit_it->second.state = listIt::T2_FREQUENT;  
@@ -137,6 +148,15 @@ namespace arc_cache {
                     target_recent_size = (target_recent_size >= delta) ? (target_recent_size - delta) : 0;
                     if (isCacheFull()) {
                         Replace();
+                        hit_it = hash_.find(key);
+                        if (hit_it == hash_.end()) {
+                            frequent_list.push_front(key);
+                            hash_.emplace(key, node(slow_get_page(key),
+                            listIt::T2_FREQUENT, frequent_list.begin()));
+                            return false;
+                        
+                        }   
+
                     }
 
                     hit_it->second.state = listIt::T2_FREQUENT;  
@@ -146,6 +166,7 @@ namespace arc_cache {
                     return false;
                 }
             }
+        
 
             Value fresh_data  = slow_get_page(key);
 
@@ -160,5 +181,6 @@ namespace arc_cache {
 
             return false;
         }
+        
     }; 
 }

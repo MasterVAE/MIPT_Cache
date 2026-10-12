@@ -303,8 +303,12 @@ def main() -> int:
                             check=False,
                         )
                         if result.returncode != 0:
-                            detail = (result.stderr or result.stdout or "no output").strip()
-                            raise RuntimeError(f"process exited {result.returncode}: {detail[-1000:]}")
+                            logs_dir = output_dir / "logs"
+                            logs_dir.mkdir(exist_ok=True)
+                            log_path = logs_dir / f"{case_id}.stderr.txt"
+                            log_path.write_text(result.stderr or result.stdout, encoding="utf-8")
+                            first_kb = (result.stderr or result.stdout or "").strip()[:2000]
+                            raise RuntimeError(f"process exited {result.returncode}: see {log_path.name}: {first_kb}")
                         total_miss, perfect_miss = parse_misses(result.stdout)
                         row["total_miss"] = total_miss
                         row["perfect_miss"] = perfect_miss
