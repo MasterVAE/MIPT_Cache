@@ -2,6 +2,8 @@
 #include <vector>
 #include <memory>
 #include <cassert>
+#include <cstdlib>
+#include <utility>
 
 #include "config.h"
 #include "cache.hpp"

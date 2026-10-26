@@ -1,7 +1,9 @@
 #pragma once
 
+#include "cache.hpp"
 #include <list>
 #include <unordered_map>
+#include <utility>
 
 
 namespace lfu_cache {

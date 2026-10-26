@@ -8,9 +8,10 @@
 #include <iostream>
 #include <limits>
 #include <set>
-#include <cstddef>
 #include <utility>
 #include <iterator>
+#include <cassert>
+#include <new>
 
 template <typename KeyT, typename Value>
 struct CacheAPI

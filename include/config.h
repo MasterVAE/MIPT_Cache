@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <cstddef>
 
 enum LayerType {
     LAYER_ARC,

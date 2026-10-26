@@ -4,6 +4,9 @@
 #include <list>
 #include <unordered_map>
 #include "config.h"
+#include <algorithm>
+#include <iterator>
+#include <utility>
 
 namespace lirs_cache {
 
