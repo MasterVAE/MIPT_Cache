@@ -1,135 +1,93 @@
+
 #pragma once
 
-#include <vector>
-#include <list>
-#include <unordered_map>
-#include <memory>
-#include <cstddef>
-#include <iostream>
-#include <limits>
-#include <set>
-#include <utility>
-#include <iterator>
 #include <cassert>
-#include <new>
+#include <cstddef>
+#include <iterator>
+#include <set>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 
 template <typename KeyT, typename Value>
-struct CacheAPI
-{
+class CacheAPI {
+protected:
     CacheAPI<KeyT, Value>* next_cache_level;
 
-    size_t misses = 0;
+public:
+    explicit CacheAPI(CacheAPI<KeyT, Value>* next = nullptr)
+        : next_cache_level(next) {}
 
-    CacheAPI(CacheAPI<KeyT, Value>* next = nullptr) : next_cache_level(next) {}
-
-    virtual ~CacheAPI()
-    {
+    virtual ~CacheAPI() {
         delete next_cache_level;
     }
-    virtual int Request(KeyT) = 0;
+
+    virtual int Request(KeyT key) = 0;
 
     CacheAPI(const CacheAPI&) = delete;
     CacheAPI& operator=(const CacheAPI&) = delete;
 };
 
-#include "lirs_cache.hpp"
-#include "config.h"
-#include "arc_cache.hpp"
-#include "lfu_cache.hpp"
-#include "2Q_cache.hpp"
-
 
 template <typename KeyT, typename Value>
-CacheAPI<KeyT, Value>* CreateCache(std::unique_ptr<Config> config) {
-    assert(config);
-
-    CacheAPI<KeyT, Value>* current_top = nullptr;
-
-    for (int cache_level = config->layers.size() - 1; cache_level >= 0; --cache_level) {
-        switch (config->layers[cache_level].type) {
-
-        case LAYER_LFU:
-            current_top = new lfu_cache::lfu_cache<KeyT, Value>(
-                                config->layers[cache_level].size, 
-                                current_top);
-            break;
-        case LAYER_ARC:
-            current_top = new arc_cache::arc_cache<KeyT, Value>(
-                                config->layers[cache_level].size, 
-                                current_top);
-            break;
-        
-        case LAYER_2Q:
-                current_top = new cache_2Q::cache_2Q_<KeyT, Value>(
-                                config->layers[cache_level].size, 
-                                current_top);
-        
-            break;
-        case LAYER_LIRS:
-            current_top = new lirs_cache::lirs_cache<KeyT, Value>(
-                                config->layers[cache_level].size, 
-                                current_top);
-            break;
-        default:
-            break;
-        }
-    }
-
-    return current_top;
-}
-
-template <typename KeyT, typename Value>
-
-int RunCache(CacheAPI<KeyT, Value>* current_top, size_t count, std::vector<Value> values){
+int RunCache(
+    CacheAPI<KeyT, Value>* current_top,
+    std::size_t count,
+    const std::vector<Value>& values
+) {
     assert(current_top);
+    assert(count <= values.size());
 
-    int miss = 0;
+    int misses = 0;
 
-    for(size_t i = 0; i < count; i++) {
-
-        miss += current_top->Request(values[i]);
+    for (std::size_t i = 0; i < count; ++i) {
+        misses += current_top->Request(values[i]);
     }
 
-    return miss;
+    return misses;
 }
-
 
 
 template <typename Value>
-static int SimulatePerfectCache(
-                        const std::vector<Value>& requests,
-                        size_t capacity,
-                        std::vector<Value>& misses) {
+int SimulatePerfectCache(
+    const std::vector<Value>& requests,
+    std::size_t capacity,
+    std::vector<Value>& misses
+) {
     if (capacity == 0) {
         misses = requests;
         return static_cast<int>(requests.size());
     }
 
-    const size_t n = requests.size();
-    const size_t INF = n + 1;
+    const std::size_t n = requests.size();
+    const std::size_t INF = n + 1;
 
-    std::vector<size_t> next(n, INF);
-    std::unordered_map<Value, size_t> last;
-    for (size_t i = n; i-- > 0; ) {
+    std::vector<std::size_t> next(n, INF);
+    std::unordered_map<Value, std::size_t> last;
+
+    for (std::size_t i = n; i-- > 0;) {
         auto it = last.find(requests[i]);
+
         if (it != last.end()) {
             next[i] = it->second;
         }
+
         last[requests[i]] = i;
     }
 
-    std::unordered_map<Value, size_t> cache;
-
-    std::set<std::pair<size_t, Value>> evictSet;
+    std::unordered_map<Value, std::size_t> cache;
+    std::set<std::pair<std::size_t, Value>> evictSet;
 
     int missCount = 0;
 
-    for (size_t i = 0; i < n; ++i) {
+    for (std::size_t i = 0; i < n; ++i) {
         const Value& val = requests[i];
         auto it = cache.find(val);
 
         if (it != cache.end()) {
-            size_t oldNext = it->second;
+            std::size_t oldNext = it->second;
+
             evictSet.erase({oldNext, val});
             it->second = next[i];
             evictSet.insert({next[i], val});
@@ -140,6 +98,7 @@ static int SimulatePerfectCache(
             if (cache.size() == capacity) {
                 auto evictIt = std::prev(evictSet.end());
                 Value evictVal = evictIt->second;
+
                 cache.erase(evictVal);
                 evictSet.erase(evictIt);
             }
@@ -154,17 +113,24 @@ static int SimulatePerfectCache(
 
 
 template <typename Value>
-int RunPerfectCache(std::vector<size_t> capacity, std::vector<Value> values) {
+int RunPerfectCache(
+    std::vector<std::size_t> capacity,
+    std::vector<Value> values
+) {
     int totalMisses = 0;
     std::vector<Value> requests = std::move(values);
 
-    for (size_t cap : capacity) {
+    for (std::size_t cap : capacity) {
         if (requests.empty()) {
             break;
         }
 
         std::vector<Value> misses;
-        totalMisses += SimulatePerfectCache(requests, cap, misses);
+
+        totalMisses += SimulatePerfectCache(
+            requests, cap, misses
+        );
+
         requests = std::move(misses);
     }
 

@@ -4,10 +4,13 @@
 #include <cassert>
 #include <cstdlib>
 #include <utility>
+#include <cstddef>
 
 #include "config.h"
 #include "cache.hpp"
 #include "tests.hpp"
+#include "cache.hpp"
+#include "cache_factory.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -20,24 +23,24 @@ int main(int argc, char* argv[])
     std::unique_ptr<Config> config = LoadConfig(argv[1]);
     if(!config) exit(EXIT_FAILURE);
 
-    std::vector<size_t> layers;
+    std::vector<std::size_t> layers;
     for(auto layer : config->layers)
     {
         layers.push_back(layer.size);
     }
-    size_t first_layer_size = config->layers[0].size;
+    std::size_t first_layer_size = config->layers[0].size;
 
     CacheAPI<int, int>* system_cache = CreateCache<int, int>(std::move(config));
     if(!system_cache) exit(EXIT_FAILURE);
 
-    size_t count = 0;
+    std::size_t count = 0;
     std::cin >> count;
 
     assert(std::cin.good());
 
     std::vector<int> numbers(count);
 
-    for(size_t i = 0; i < count; i++) std::cin >> numbers[i];
+    for(std::size_t i = 0; i < count; i++) std::cin >> numbers[i];
 
     int miss = RunCache(system_cache, count, numbers);
     int perfect_miss = RunPerfectCache(layers, numbers);

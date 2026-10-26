@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdlib.h>
 #include <vector>
 #include <memory>
 #include <string>
@@ -14,7 +13,7 @@ enum LayerType {
 };
 
 struct ConfigLayer {
-    size_t size;
+    std::size_t size;
     LayerType type;
 };
 

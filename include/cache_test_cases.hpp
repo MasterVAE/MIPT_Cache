@@ -5,11 +5,17 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <cstddef>
 
 #include "cache.hpp"
 
+#include "2Q_cache.hpp"
+#include "arc_cache.hpp"
+#include "lfu_cache.hpp"
+#include "lirs_cache.hpp"
+
 using TestCache = CacheAPI<int, int>;
-using CacheFactory = std::function<std::unique_ptr<TestCache>(size_t)>;
+using CacheFactory = std::function<std::unique_ptr<TestCache>(std::size_t)>;
 
 struct CacheImplementation
 {
@@ -23,7 +29,7 @@ inline std::vector<CacheImplementation> GetCacheImplementations()
 
     caches.push_back({
         "LIRS",
-        [](size_t capacity) -> std::unique_ptr<TestCache>
+        [](std::size_t capacity) -> std::unique_ptr<TestCache>
         {
             return std::make_unique<
                 lirs_cache::lirs_cache<int, int>>(capacity);
@@ -33,14 +39,14 @@ inline std::vector<CacheImplementation> GetCacheImplementations()
 
     caches.push_back({
         "ARC",
-        [](size_t capacity) -> std::unique_ptr<TestCache>
+        [](std::size_t capacity) -> std::unique_ptr<TestCache>
         {
             return std::make_unique<arc_cache::arc_cache<int, int>>(capacity);
         }
     });
         caches.push_back({
         "2Q",
-        [](size_t capacity) -> std::unique_ptr<TestCache>
+        [](std::size_t capacity) -> std::unique_ptr<TestCache>
         {
             return std::make_unique<cache_2Q::cache_2Q_<int, int>>(capacity);
         }
@@ -48,7 +54,7 @@ inline std::vector<CacheImplementation> GetCacheImplementations()
     });
         caches.push_back({
         "LFU",
-        [](size_t capacity) -> std::unique_ptr<TestCache>
+        [](std::size_t capacity) -> std::unique_ptr<TestCache>
         {
             return std::make_unique<lfu_cache::lfu_cache<int, int>>(capacity);
         }

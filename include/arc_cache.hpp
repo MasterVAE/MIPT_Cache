@@ -1,188 +1,202 @@
 #pragma once
 
 #include "cache.hpp"
+
+#include <algorithm>
+#include <cstddef>
 #include <list>
 #include <unordered_map>
-#include <algorithm>
+#include <utility>
 
 namespace arc_cache {
-    template <typename KeyT, typename Value>
-    class arc_cache : public CacheAPI<KeyT, Value>{
 
-        size_t cache_sz_;
-        
-        public:
-            arc_cache (size_t sz, CacheAPI<KeyT, Value>* next_cache_level = nullptr) : 
-            cache_sz_{sz}, CacheAPI<KeyT, Value>(next_cache_level) {}
+template <typename KeyT, typename Value>
+class arc_cache : public CacheAPI<KeyT, Value> {
+public:
+    explicit arc_cache(
+        std::size_t sz,
+        CacheAPI<KeyT, Value>* next_cache_level = nullptr
+    )
+        : CacheAPI<KeyT, Value>(next_cache_level), cache_sz_(sz) {}
 
-            std::list<KeyT> recent_list;
-            std::list<KeyT> frequent_list;
-            std::list<KeyT> recent_history;
-            std::list<KeyT> frequent_history;
-            
-            enum class listIt { 
-                T1_RECENT, 
-                T2_FREQUENT, 
-                B1_RECENT_GHOST, 
-                B2_FREQUENT_GHOST 
-            };
+    int Request(KeyT key) override {
+        int misses_below = 0;
 
-            struct node {
-                Value val;
-                listIt state;
-
-                typename std::list<KeyT>::iterator it;  
-                
-                node (Value v, listIt s, typename std::list<KeyT>::iterator i = {})
-                    :val(v), state(s), it(i) {} 
-            };
-
-            std::unordered_map<KeyT, node> hash_;
-
-            int Request(KeyT key) override {
-                size_t misses = 0;
-                auto fetch_from_next = [&] (KeyT k) -> Value {
-                    if (this->next_cache_level != nullptr) {
-                      
-                         misses = this->next_cache_level->Request(k);
-                    }
-                        return static_cast<Value>(k);
-                };
-                
-                     
-                bool is_hit = LookUpUpdate(key, fetch_from_next);
-                if (is_hit) {
-                    return 0;
-                }
-                
-                return 1 + misses;
+        auto fetch_from_next = [&](KeyT k) -> Value {
+            if (this->next_cache_level != nullptr) {
+                misses_below = this->next_cache_level->Request(k);
             }
+            return static_cast<Value>(k);
+        };
 
-            bool isCacheFull()           { return (recent_list.size() + frequent_list.size()) >= cache_sz_; }
-            bool isRecentHistoryFull()   { return recent_history.size() >= cache_sz_; }
-            bool isFrequentHistoryFull() { return frequent_history.size() >= cache_sz_; }
-            
-            size_t target_recent_size = 0;
-
-            void Replace() {
-                if (recent_list.size() >= std::max<size_t>(1, target_recent_size)) {
-
-                    auto evicted_recent_key = hash_.find(recent_list.back());
-
-                    if (isRecentHistoryFull()) {
-                        auto elem_to_remove = hash_.find(recent_history.back());
-
-                        hash_.erase(elem_to_remove); 
-                        recent_history.pop_back();
-                    }
-
-                recent_history.splice(recent_history.begin(), recent_list, 
-                                                      evicted_recent_key->second.it);
-                
-                evicted_recent_key->second.state = listIt::B1_RECENT_GHOST;
-                evicted_recent_key->second.val = Value{};
-                } else {
-                    auto evicted_frequent_key = hash_.find(frequent_list.back());
-
-                    if (isFrequentHistoryFull()) {
-
-                        auto elem_to_remove = hash_.find(frequent_history.back());
-
-                        hash_.erase(elem_to_remove); 
-                        frequent_history.pop_back();
-                    }
-
-                    frequent_history.splice(frequent_history.begin(), frequent_list, 
-                                                            evicted_frequent_key->second.it);
-
-                    evicted_frequent_key->second.state = listIt::B2_FREQUENT_GHOST;
-                    evicted_frequent_key->second.val = Value{};
-                }
-            }
-
-        template <typename F>
-        bool LookUpUpdate(KeyT key, F slow_get_page){
-            
-            auto hit_it = hash_.find(key);
-
-            if (hit_it != hash_.end()) {
-                if (hit_it->second.state == listIt::T1_RECENT) {
-                    hit_it->second.state = listIt::T2_FREQUENT;
-                    frequent_list.splice(frequent_list.begin(), recent_list, hit_it->second.it);
-
-                    return true;
-                } 
-                
-                if (hit_it->second.state == listIt::T2_FREQUENT) {
-                    frequent_list.splice(frequent_list.begin(),frequent_list, hit_it->second.it);
-                    return true; 
-                }
-
-                if (hit_it->second.state == listIt::B1_RECENT_GHOST) {
-                    size_t delta = std::max<size_t>(1, frequent_list.size() / 
-                                   std::max<size_t>(1, recent_list.size()));        
-                    target_recent_size = std::min(cache_sz_, target_recent_size + delta);
-
-                    if (isCacheFull()) {
-                        Replace();
-                        hit_it = hash_.find(key); 
-                        if (hit_it == hash_.end()) {
-
-                            frequent_list.push_front(key);
-                            hash_.emplace(key, node(slow_get_page(key),
-                            listIt::T2_FREQUENT, frequent_list.begin()));
-                            return false;
-                        }
-
-                    }
-
-                    hit_it->second.state = listIt::T2_FREQUENT;  
-                    frequent_list.splice(frequent_list.begin(), recent_history, hit_it->second.it);
-                    hit_it->second.val = slow_get_page(key);     
-
-                    return false;
-                }
-
-                if (hit_it->second.state == listIt::B2_FREQUENT_GHOST) {
-                    size_t delta = std::max<size_t>(1, recent_list.size() / 
-                                   std::max<size_t>(1,frequent_list.size()));  
-
-                    target_recent_size = (target_recent_size >= delta) ? (target_recent_size - delta) : 0;
-                    if (isCacheFull()) {
-                        Replace();
-                        hit_it = hash_.find(key);
-                        if (hit_it == hash_.end()) {
-                            frequent_list.push_front(key);
-                            hash_.emplace(key, node(slow_get_page(key),
-                            listIt::T2_FREQUENT, frequent_list.begin()));
-                            return false;
-                        
-                        }   
-
-                    }
-
-                    hit_it->second.state = listIt::T2_FREQUENT;  
-                    frequent_list.splice(frequent_list.begin(), frequent_history, hit_it->second.it);
-                    hit_it->second.val = slow_get_page(key);   
-
-                    return false;
-                }
-            }
-        
-
-            Value fresh_data  = slow_get_page(key);
-
-            if (isCacheFull()) {
-                Replace();
-            }
-            recent_list.push_front(key);
-
-            node new_node(fresh_data, listIt::T1_RECENT, recent_list.begin());
-            
-            hash_.emplace(key, new_node);
-
-            return false;
+        if (LookUpUpdate(key, fetch_from_next)) {
+            return 0;
         }
-        
-    }; 
-}
+        return 1 + misses_below;
+    }
+
+private:
+    enum class ListKind {
+        T1_RECENT,
+        T2_FREQUENT,
+        B1_RECENT_GHOST,
+        B2_FREQUENT_GHOST
+    };
+
+    struct Node {
+        Value val;
+        ListKind state;
+        typename std::list<KeyT>::iterator it;
+
+        Node(Value value, ListKind list,
+             typename std::list<KeyT>::iterator pos = {})
+            : val(std::move(value)), state(list), it(pos) {}
+    };
+
+    std::size_t cache_sz_;
+    std::size_t target_recent_size_ = 0;
+
+    std::list<KeyT> recent_list_;
+    std::list<KeyT> frequent_list_;
+    std::list<KeyT> recent_history_;
+    std::list<KeyT> frequent_history_;
+    std::unordered_map<KeyT, Node> hash_;
+
+    bool isCacheFull() const {
+        return recent_list_.size() + frequent_list_.size() >= cache_sz_;
+    }
+
+    bool isRecentHistoryFull() const {
+        return recent_history_.size() >= cache_sz_;
+    }
+
+    bool isFrequentHistoryFull() const {
+        return frequent_history_.size() >= cache_sz_;
+    }
+
+    void Replace() {
+        if (recent_list_.size() >= std::max<std::size_t>(1, target_recent_size_)) {
+            auto evicted_recent_key = hash_.find(recent_list_.back());
+
+            if (isRecentHistoryFull()) {
+                hash_.erase(recent_history_.back());
+                recent_history_.pop_back();
+            }
+
+            recent_history_.splice(
+                recent_history_.begin(), recent_list_, evicted_recent_key->second.it
+            );
+            evicted_recent_key->second.state = ListKind::B1_RECENT_GHOST;
+            evicted_recent_key->second.val = Value{};
+        } else {
+            auto evicted_frequent_key = hash_.find(frequent_list_.back());
+
+            if (isFrequentHistoryFull()) {
+                hash_.erase(frequent_history_.back());
+                frequent_history_.pop_back();
+            }
+
+            frequent_history_.splice(
+                frequent_history_.begin(), frequent_list_, evicted_frequent_key->second.it
+            );
+            evicted_frequent_key->second.state = ListKind::B2_FREQUENT_GHOST;
+            evicted_frequent_key->second.val = Value{};
+        }
+    }
+
+    template <typename F>
+    bool LookUpUpdate(KeyT key, F slow_get_page) {
+        auto hit_it = hash_.find(key);
+
+        if (hit_it != hash_.end()) {
+            if (hit_it->second.state == ListKind::T1_RECENT) {
+                hit_it->second.state = ListKind::T2_FREQUENT;
+                frequent_list_.splice(
+                    frequent_list_.begin(), recent_list_, hit_it->second.it
+                );
+                return true;
+            }
+
+            if (hit_it->second.state == ListKind::T2_FREQUENT) {
+                frequent_list_.splice(
+                    frequent_list_.begin(), frequent_list_, hit_it->second.it
+                );
+                return true;
+            }
+
+            if (hit_it->second.state == ListKind::B1_RECENT_GHOST) {
+                std::size_t delta = std::max<std::size_t>(
+                    1,
+                    frequent_list_.size() /
+                        std::max<std::size_t>(1, recent_list_.size())
+                );
+                target_recent_size_ = std::min(
+                    cache_sz_, target_recent_size_ + delta
+                );
+
+                if (isCacheFull()) {
+                    Replace();
+                    hit_it = hash_.find(key);
+                    if (hit_it == hash_.end()) {
+                        frequent_list_.push_front(key);
+                        hash_.emplace(
+                            key, Node(slow_get_page(key), ListKind::T2_FREQUENT,
+                                      frequent_list_.begin())
+                        );
+                        return false;
+                    }
+                }
+
+                hit_it->second.state = ListKind::T2_FREQUENT;
+                frequent_list_.splice(
+                    frequent_list_.begin(), recent_history_, hit_it->second.it
+                );
+                hit_it->second.val = slow_get_page(key);
+                return false;
+            }
+
+            if (hit_it->second.state == ListKind::B2_FREQUENT_GHOST) {
+                std::size_t delta = std::max<std::size_t>(
+                    1,
+                    recent_list_.size() /
+                        std::max<std::size_t>(1, frequent_list_.size())
+                );
+                target_recent_size_ =
+                    (target_recent_size_ >= delta) ? target_recent_size_ - delta : 0;
+
+                if (isCacheFull()) {
+                    Replace();
+                    hit_it = hash_.find(key);
+                    if (hit_it == hash_.end()) {
+                        frequent_list_.push_front(key);
+                        hash_.emplace(
+                            key, Node(slow_get_page(key), ListKind::T2_FREQUENT,
+                                      frequent_list_.begin())
+                        );
+                        return false;
+                    }
+                }
+
+                hit_it->second.state = ListKind::T2_FREQUENT;
+                frequent_list_.splice(
+                    frequent_list_.begin(), frequent_history_, hit_it->second.it
+                );
+                hit_it->second.val = slow_get_page(key);
+                return false;
+            }
+        }
+
+        Value fresh_data = slow_get_page(key);
+
+        if (isCacheFull()) {
+            Replace();
+        }
+        recent_list_.push_front(key);
+        hash_.emplace(
+            key, Node(std::move(fresh_data), ListKind::T1_RECENT, recent_list_.begin())
+        );
+        return false;
+    }
+};
+
+} // namespace arc_cache

@@ -2,10 +2,11 @@
 
 #include <string>
 #include <vector>
+#include <cstddef>
 
 struct CacheTestCase {
     std::string name;
-    size_t capacity;
+    std::size_t capacity;
     std::vector<int> requests;
     int expected_misses;
 };
