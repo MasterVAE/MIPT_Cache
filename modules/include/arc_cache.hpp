@@ -111,9 +111,9 @@ private:
         if (hit_it != hash_.end()) {
             if (hit_it->second.state == ListKind::T1_RECENT) {
                 hit_it->second.state = ListKind::T2_FREQUENT;
-                frequent_list_.splice(
-                    frequent_list_.begin(), recent_list_, hit_it->second.it
-                );
+                frequent_list_.splice(frequent_list_.begin(), 
+                            recent_list_, hit_it->second.it);
+                            
                 return true;
             }
 

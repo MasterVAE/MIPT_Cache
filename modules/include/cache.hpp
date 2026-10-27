@@ -29,7 +29,6 @@ public:
     CacheAPI& operator=(const CacheAPI&) = delete;
 };
 
-
 template <typename KeyT, typename Value>
 int RunCache(
     CacheAPI<KeyT, Value>* current_top,

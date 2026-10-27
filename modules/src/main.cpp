@@ -14,11 +14,14 @@
 
 int main(int argc, char* argv[])
 {
-#if 0
+#ifdef ENABLE_UNIT_TESTS
     RunUnitTests();
 #endif
 
-    if(argc < 2) exit(EXIT_FAILURE);
+    if(argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <path_to_config>\n";
+        exit(EXIT_FAILURE);
+    }
 
     std::unique_ptr<Config> config = LoadConfig(argv[1]);
     if(!config) exit(EXIT_FAILURE);
