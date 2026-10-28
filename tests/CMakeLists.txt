@@ -19,16 +19,32 @@ add_executable(unit_tests
     GTest::gtest_main
  )
 target_compile_options(unit_tests PRIVATE
-    $<$<CONFIG:DEBUG>:-Wall;-Wpedantic;-DDEBUG;-O0;-g;-Wmissing-declarations;-Wcast-align;-Wshadow;-Wsign-conversion>
-    $<$<CONFIG:RELEASE>:-O2>
+    $<$<CONFIG:DEBUG>:
+        -Wall;
+        -Wpedantic;
+        -DDEBUG;
+        -O0;
+        -g;
+        -Wmissing-declarations;
+        -Wcast-align;
+        -Wshadow;
+        -Wsign-conversion>
+        -Wmissing-declarations
+        -Wnon-virtual-dtor
+    $<$<CONFIG:RELEASE>:
+        -O3>
 )
 
 if (ENABLE_ASAN)
     target_compile_options(unit_tests PRIVATE
-        $<$<CONFIG:DEBUG>: -fsanitize=address -fno-omit-frame-pointer>
+        $<$<CONFIG:DEBUG>: 
+            -fsanitize=address,undefined 
+            -fno-omit-frame-pointer>
     )
     target_link_options(unit_tests PRIVATE
-        $<$<CONFIG:DEBUG>: -fsanitize=address>
+        $<$<CONFIG:DEBUG>: 
+            -fsanitize=address,undefined 
+            -fno-omit-frame-pointer>
     )
 endif()
 

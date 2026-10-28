@@ -9,16 +9,32 @@ add_executable(cache_exec
 
 target_link_libraries(cache_exec PRIVATE cache_lib)
 target_compile_options(cache_exec PRIVATE
-    $<$<CONFIG:DEBUG>:-Wall;-Wpedantic;-DDEBUG;-O0;-g;-Wmissing-declarations;-Wcast-align;-Wshadow;-Wsign-conversion>
-    $<$<CONFIG:RELEASE>:-O3>
+    $<$<CONFIG:DEBUG>:
+        -Wall;
+        -Wpedantic;
+        -DDEBUG;
+        -O0;
+        -g;
+        -Wmissing-declarations;
+        -Wcast-align;
+        -Wshadow;
+        -Wsign-conversion>
+        -Wmissing-declarations
+        -Wnon-virtual-dtor
+    $<$<CONFIG:RELEASE>:
+        -O3>
 )
 
 if (ENABLE_ASAN)
     target_compile_options(cache_exec PRIVATE
-        $<$<CONFIG:DEBUG>: -fsanitize=address -fno-omit-frame-pointer>
+        $<$<CONFIG:DEBUG>: 
+            -fsanitize=address,undefined
+            -fno-omit-frame-pointer>
     )
     target_link_options(cache_exec PRIVATE
-        $<$<CONFIG:DEBUG>: -fsanitize=address>
+        $<$<CONFIG:DEBUG>: 
+            -fsanitize=address,undefined
+            -fno-omit-frame-pointer>
     )
 endif()
 

@@ -31,7 +31,6 @@ int main(int argc, char* argv[])
     {
         layers.push_back(layer.size);
     }
-    std::size_t first_layer_size = config->layers[0].size;
 
     CacheAPI<int, int>* system_cache = CreateCache<int, int>(std::move(config));
     if(!system_cache) exit(EXIT_FAILURE);
