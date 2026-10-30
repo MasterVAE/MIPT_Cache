@@ -78,6 +78,11 @@ private:
 
     template <typename F>
     bool LookUpUpdate(KeyT key, F slow_get_page) {
+        if (cache_sz_ == 0) {
+            slow_get_page(key);
+            return false;
+        }
+        
         auto hit_it = hash_.find(key);
 
         if (hit_it != hash_.end()) {

@@ -18,6 +18,14 @@ protected:
     }
 };
 
+
+TEST(CacheTest, CheckLfuZeroSize)
+{    
+    lfu_cache::lfu_cache<int, int> cache(0);
+    cache.Request(42);
+    
+    
+}
 TEST_P(CacheTest, FirstRequestIsMiss)
 {
     EXPECT_TRUE(cache->Request(1));

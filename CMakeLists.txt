@@ -11,5 +11,13 @@ include(CTest)
 
 option(ENABLE_ASAN "Enable AddressSanitizer for Debug builds" OFF)
 
+option(ENABLE_DEBUG "Enable _GLIBCXX_DEBUG and sanitizers" OFF)
+
+if(ENABLE_DEBUG)
+    add_compile_definitions(_GLIBCXX_DEBUG)
+    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1)
+    add_link_options(-fsanitize=address,undefined)
+endif()
+
 add_subdirectory(modules)
 add_subdirectory(tests)

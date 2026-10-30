@@ -30,27 +30,19 @@ CacheAPI<KeyT, Value>* CreateCache(
 
         switch (layer.type) {
             case LAYER_LFU:
-                new_top = new lfu_cache::lfu_cache<KeyT, Value>(
-                    layer.size, next
-                );
+                new_top = new lfu_cache::lfu_cache<KeyT, Value>(layer.size, next);
                 break;
 
             case LAYER_ARC:
-                new_top = new arc_cache::arc_cache<KeyT, Value>(
-                    layer.size, next
-                );
+                new_top = new arc_cache::arc_cache<KeyT, Value>(layer.size, next);
                 break;
 
             case LAYER_2Q:
-                new_top = new cache_2Q::cache_2Q_<KeyT, Value>(
-                    layer.size, next
-                );
+                new_top = new cache_2Q::cache_2Q_<KeyT, Value>(layer.size, next);
                 break;
 
             case LAYER_LIRS:
-                new_top = new lirs_cache::lirs_cache<KeyT, Value>(
-                    layer.size, next
-                );
+                new_top = new lirs_cache::lirs_cache<KeyT, Value>(layer.size, next);
                 break;
 
             default:
