@@ -16,13 +16,8 @@ option(ENABLE_STRICT_DEBUG "Enable _GLIBCXX_DEBUG and Adress/UB sanitizers" OFF)
 add_library(cache_compile_flags INTERFACE)
 
 target_compile_options(cache_compile_flags INTERFACE
-    $<$<CONFIG:DEBUG>:-Wall;-Wpedantic;-DDEBUG;-O0;-g;-Wmissing-declarations;-Wcast-align;-Wshadow;-Wsign-conversion>
+    $<$<CONFIG:DEBUG>:-Wall;>
     $<$<CONFIG:RELEASE>:-O2>
-)
-
-target_compile_options(cache_compile_flags INTERFACE
-    $<$<CONFIG:DEBUG>:-O0 -g -DDEBUG>
-    $<$<CONFIG:RELEASE>:-O3>
 )
 
 if(ENABLE_STRICT_DEBUG)
@@ -35,11 +30,6 @@ if(ENABLE_STRICT_DEBUG)
     )
 endif()
 
-
-option(ENABLE_UNIT_TESTS "Compile with UNIT_TESTS macro" ON)
-if(ENABLE_UNIT_TESTS)
-    target_compile_definitions(cache_compile_flags INTERFACE ENABLE_UNIT_TESTS=1)
-endif()
 
 add_subdirectory(modules)
 add_subdirectory(tests)
