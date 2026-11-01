@@ -59,7 +59,6 @@ inline std::vector<CacheImplementation> GetCacheImplementations()
             return std::make_unique<lfu_cache::lfu_cache<int, int>>(capacity);
         }
     });
-        // Аналогично добавляется ARC.
-
+    
     return caches;
 }

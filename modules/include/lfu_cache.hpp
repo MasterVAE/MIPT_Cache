@@ -14,26 +14,31 @@ class lfu_cache : public CacheAPI<KeyT, Value> {
 public:
     explicit lfu_cache(
         std::size_t sz,
-        CacheAPI<KeyT, Value>* next_cache_level = nullptr
+        CacheAPI<KeyT, Value>* next = nullptr
     )
-        : CacheAPI<KeyT, Value>(next_cache_level),
+        : CacheAPI<KeyT, Value>(next),
           cache_sz_(sz),
           min_freq_(0) {}
 
-    int Request(KeyT key) override {
+    CacheResult<int, int> Request(KeyT key) override {
         int misses_below = 0;
+        Value result_data;
 
         auto fetch_from_next = [&](KeyT k) -> Value {
             if (this->next_cache_level != nullptr) {
-                misses_below = this->next_cache_level->Request(k);
+                auto res = this->next_cache_level->Request(k);
+                misses_below = res.misses;
+
+                return res.data;
             }
+
             return static_cast<Value>(k);
         };
 
-        if (LookUpUpdate(key, fetch_from_next)) {
-            return 0;
+        if (LookUpUpdate(key, fetch_from_next, result_data)) {
+            return {result_data, 0};
         }
-        return 1 + misses_below;
+        return  {result_data, 1 + misses_below};
     }
 
 private:
@@ -76,11 +81,17 @@ private:
         hit_it->second.it = freq_map_[new_freq].begin();
     }
 
-    template <typename F>
-    bool LookUpUpdate(KeyT key, F slow_get_page) {
+template <typename F>
+    bool LookUpUpdate(KeyT key, F slow_get_page, Value& out_val) {
+        if (cache_sz_ == 0) {
+            out_val = slow_get_page(key);
+            return false;
+        }
+
         auto hit_it = hash_.find(key);
 
         if (hit_it != hash_.end()) {
+            out_val = hit_it->second.val; 
             UpdateFreq(key);
             return true;
         }
@@ -95,12 +106,14 @@ private:
             hash_.erase(evicted_key);
         }
 
-        Value fresh_data = slow_get_page(key);
+        out_val = slow_get_page(key); 
         min_freq_ = 1;
+        
         freq_map_[min_freq_].push_front(key);
         hash_.emplace(
-            key, Node(std::move(fresh_data), min_freq_, freq_map_[min_freq_].begin())
+            key, Node(out_val, min_freq_, freq_map_[min_freq_].begin())
         );
+        
         return false;
     }
 };

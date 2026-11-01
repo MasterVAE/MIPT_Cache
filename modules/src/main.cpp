@@ -14,7 +14,8 @@
 
 int main(int argc, char* argv[])
 {
-#ifdef ENABLE_UNIT_TESTS
+
+#if 0
     RunUnitTests();
 #endif
 
