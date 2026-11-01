@@ -1,0 +1,167 @@
+{
+  "tests": 25,
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "CacheTest",
+      "tests": 1,
+      "testsuite": [
+        {
+          "name": "CheckLfuZeroSize",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 22
+        }
+      ]
+    },
+    {
+      "name": "AllCacheAlgorithms\/CacheTest",
+      "tests": 24,
+      "testsuite": [
+        {
+          "name": "FirstRequestIsMiss\/LIRS",
+          "value_param": "64-byte object <30-73 12-E5 AE-61 00-00 04-00 00-00 00-00 00-00 4C-49 52-53 00-00 00-00 54-45 53-54 53-00 74-65 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 CF-48 23-CB AE-61 00-00 59-48 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 29
+        },
+        {
+          "name": "FirstRequestIsMiss\/ARC",
+          "value_param": "64-byte object <30-73 12-E5 AE-61 00-00 03-00 00-00 00-00 00-00 41-52 43-00 00-00 00-00 54-45 53-54 53-00 74-65 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 3A-4F 23-CB AE-61 00-00 C4-4E 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 29
+        },
+        {
+          "name": "FirstRequestIsMiss\/2Q",
+          "value_param": "64-byte object <30-73 12-E5 AE-61 00-00 02-00 00-00 00-00 00-00 32-51 00-00 00-00 00-00 54-45 53-54 53-00 74-65 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 EC-54 23-CB AE-61 00-00 76-54 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 29
+        },
+        {
+          "name": "FirstRequestIsMiss\/LFU",
+          "value_param": "64-byte object <30-73 12-E5 AE-61 00-00 03-00 00-00 00-00 00-00 4C-46 55-00 00-00 00-00 54-45 53-54 53-00 74-65 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 80-57 23-CB AE-61 00-00 0A-57 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 29
+        },
+        {
+          "name": "RepeatedRequestIsHit\/LIRS",
+          "value_param": "64-byte object <C0-A3 12-E5 AE-61 00-00 04-00 00-00 00-00 00-00 4C-49 52-53 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 CF-48 23-CB AE-61 00-00 59-48 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 34
+        },
+        {
+          "name": "RepeatedRequestIsHit\/ARC",
+          "value_param": "64-byte object <C0-A3 12-E5 AE-61 00-00 03-00 00-00 00-00 00-00 41-52 43-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 3A-4F 23-CB AE-61 00-00 C4-4E 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 34
+        },
+        {
+          "name": "RepeatedRequestIsHit\/2Q",
+          "value_param": "64-byte object <C0-A3 12-E5 AE-61 00-00 02-00 00-00 00-00 00-00 32-51 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 EC-54 23-CB AE-61 00-00 76-54 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 34
+        },
+        {
+          "name": "RepeatedRequestIsHit\/LFU",
+          "value_param": "64-byte object <C0-A3 12-E5 AE-61 00-00 03-00 00-00 00-00 00-00 4C-46 55-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 80-57 23-CB AE-61 00-00 0A-57 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 34
+        },
+        {
+          "name": "UniqueRequestsAreMisses\/LIRS",
+          "value_param": "64-byte object <E0-B4 12-E5 AE-61 00-00 04-00 00-00 00-00 00-00 4C-49 52-53 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 CF-48 23-CB AE-61 00-00 59-48 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 40
+        },
+        {
+          "name": "UniqueRequestsAreMisses\/ARC",
+          "value_param": "64-byte object <E0-B4 12-E5 AE-61 00-00 03-00 00-00 00-00 00-00 41-52 43-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 3A-4F 23-CB AE-61 00-00 C4-4E 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 40
+        },
+        {
+          "name": "UniqueRequestsAreMisses\/2Q",
+          "value_param": "64-byte object <E0-B4 12-E5 AE-61 00-00 02-00 00-00 00-00 00-00 32-51 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 EC-54 23-CB AE-61 00-00 76-54 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 40
+        },
+        {
+          "name": "UniqueRequestsAreMisses\/LFU",
+          "value_param": "64-byte object <E0-B4 12-E5 AE-61 00-00 03-00 00-00 00-00 00-00 4C-46 55-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 80-57 23-CB AE-61 00-00 0A-57 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 40
+        },
+        {
+          "name": "LoadedKeysAreHits\/LIRS",
+          "value_param": "64-byte object <B0-BB 12-E5 AE-61 00-00 04-00 00-00 00-00 00-00 4C-49 52-53 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 CF-48 23-CB AE-61 00-00 59-48 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 49
+        },
+        {
+          "name": "LoadedKeysAreHits\/ARC",
+          "value_param": "64-byte object <B0-BB 12-E5 AE-61 00-00 03-00 00-00 00-00 00-00 41-52 43-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 3A-4F 23-CB AE-61 00-00 C4-4E 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 49
+        },
+        {
+          "name": "LoadedKeysAreHits\/2Q",
+          "value_param": "64-byte object <B0-BB 12-E5 AE-61 00-00 02-00 00-00 00-00 00-00 32-51 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 EC-54 23-CB AE-61 00-00 76-54 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 49
+        },
+        {
+          "name": "LoadedKeysAreHits\/LFU",
+          "value_param": "64-byte object <B0-BB 12-E5 AE-61 00-00 03-00 00-00 00-00 00-00 4C-46 55-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 80-57 23-CB AE-61 00-00 0A-57 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 49
+        },
+        {
+          "name": "RunCacheCountsMisses\/LIRS",
+          "value_param": "64-byte object <B0-C9 12-E5 AE-61 00-00 04-00 00-00 00-00 00-00 4C-49 52-53 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 CF-48 23-CB AE-61 00-00 59-48 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 63
+        },
+        {
+          "name": "RunCacheCountsMisses\/ARC",
+          "value_param": "64-byte object <B0-C9 12-E5 AE-61 00-00 03-00 00-00 00-00 00-00 41-52 43-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 3A-4F 23-CB AE-61 00-00 C4-4E 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 63
+        },
+        {
+          "name": "RunCacheCountsMisses\/2Q",
+          "value_param": "64-byte object <B0-C9 12-E5 AE-61 00-00 02-00 00-00 00-00 00-00 32-51 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 EC-54 23-CB AE-61 00-00 76-54 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 63
+        },
+        {
+          "name": "RunCacheCountsMisses\/LFU",
+          "value_param": "64-byte object <B0-C9 12-E5 AE-61 00-00 03-00 00-00 00-00 00-00 4C-46 55-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 80-57 23-CB AE-61 00-00 0A-57 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 63
+        },
+        {
+          "name": "RepeatedKeyHasOneMiss\/LIRS",
+          "value_param": "64-byte object <B0-BB 12-E5 AE-61 00-00 04-00 00-00 00-00 00-00 4C-49 52-53 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 CF-48 23-CB AE-61 00-00 59-48 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 75
+        },
+        {
+          "name": "RepeatedKeyHasOneMiss\/ARC",
+          "value_param": "64-byte object <B0-BB 12-E5 AE-61 00-00 03-00 00-00 00-00 00-00 41-52 43-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 3A-4F 23-CB AE-61 00-00 C4-4E 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 75
+        },
+        {
+          "name": "RepeatedKeyHasOneMiss\/2Q",
+          "value_param": "64-byte object <B0-BB 12-E5 AE-61 00-00 02-00 00-00 00-00 00-00 32-51 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 EC-54 23-CB AE-61 00-00 76-54 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 75
+        },
+        {
+          "name": "RepeatedKeyHasOneMiss\/LFU",
+          "value_param": "64-byte object <B0-BB 12-E5 AE-61 00-00 03-00 00-00 00-00 00-00 4C-46 55-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 00-00 80-57 23-CB AE-61 00-00 0A-57 23-CB AE-61 00-00>",
+          "file": "\/home\/kramer\/repos\/MIPT_Cache\/tests\/unit\/unit_cache_test.cpp",
+          "line": 75
+        }
+      ]
+    }
+  ]
+}
