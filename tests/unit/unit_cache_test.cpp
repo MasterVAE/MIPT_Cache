@@ -28,20 +28,20 @@ TEST(CacheTest, CheckLfuZeroSize)
 }
 TEST_P(CacheTest, FirstRequestIsMiss)
 {
-    EXPECT_TRUE(cache->Request(1));
+    EXPECT_GT(cache->Request(1).misses, 0);
 }
 
 TEST_P(CacheTest, RepeatedRequestIsHit)
 {
-    EXPECT_TRUE(cache->Request(1));
-    EXPECT_FALSE(cache->Request(1));
+    EXPECT_GT(cache->Request(1).misses, 0);
+    EXPECT_EQ(cache->Request(1).misses, 0);
 }
 
 TEST_P(CacheTest, UniqueRequestsAreMisses)
 {
     for (int key = 1; key <= 5; ++key)
     {
-        EXPECT_TRUE(cache->Request(key))
+        EXPECT_GT(cache->Request(key).misses, 0)
             << "Key: " << key;
     }
 }
@@ -50,12 +50,12 @@ TEST_P(CacheTest, LoadedKeysAreHits)
 {
     for (int key = 1; key <= 5; ++key)
     {
-        EXPECT_TRUE(cache->Request(key));
+        EXPECT_GT(cache->Request(key).misses, 0);
     }
 
     for (int key = 1; key <= 5; ++key)
     {
-        EXPECT_FALSE(cache->Request(key))
+        EXPECT_EQ(cache->Request(key).misses, 0)
             << "Key: " << key;
     }
 }
@@ -88,8 +88,8 @@ INSTANTIATE_TEST_SUITE_P(
     AllCacheAlgorithms,
     CacheTest,
     testing::ValuesIn(GetCacheImplementations()),
-    [](const testing::TestParamInfo<CacheImplementation>& info)
+    [](const testing::TestParamInfo<CacheImplementation>& param_info)
     {
-        return info.param.name;
+        return param_info.param.name;
     }
 );

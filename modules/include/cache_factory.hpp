@@ -15,9 +15,8 @@
 
 
 template <typename KeyT, typename Value>
-CacheAPI<KeyT, Value>* CreateCache(
-    std::unique_ptr<Config> config
-) {
+CacheAPI<KeyT, Value>* CreateCache(std::unique_ptr<Config> config) {
+    
     assert(config);
 
     std::unique_ptr<CacheAPI<KeyT, Value>> current_top;

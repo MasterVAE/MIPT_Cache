@@ -11,6 +11,12 @@
 
 
 template <typename KeyT, typename Value>
+struct CacheResult{
+    Value data;
+    int misses;
+};
+
+template <typename KeyT, typename Value>
 class CacheAPI {
 protected:
     CacheAPI<KeyT, Value>* next_cache_level;
@@ -23,7 +29,7 @@ public:
         delete next_cache_level;
     }
 
-    virtual int Request(KeyT key) = 0;
+    virtual CacheResult<int, int> Request(KeyT key) = 0;
 
     CacheAPI(const CacheAPI&) = delete;
     CacheAPI& operator=(const CacheAPI&) = delete;
@@ -41,7 +47,7 @@ int RunCache(
     int misses = 0;
 
     for (std::size_t i = 0; i < count; ++i) {
-        misses += current_top->Request(values[i]);
+        misses += current_top->Request(values[i]).misses;
     }
 
     return misses;
