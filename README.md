@@ -23,16 +23,6 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 ```
 
-### Запуск
-
-Программа принимает путь к конфигурации первым аргументом, а трассу читает из стандартного ввода:
-
-```bash
-./build/modules/cache_exec config.cfg < trace.txt
-```
-
-Форматы конфигурации и трассы описаны в разделе «Использование».
-
 ### Тестирование
 
 Запуск всех тестов — модульных, e2e и проверки запуска с конфигурацией:
@@ -47,7 +37,7 @@ ctest --test-dir build --output-on-failure
 python3 tests/e2e/test_program.py --binary ./build/modules/cache_exec
 ```
 
-## Использование
+## Запуск
 
 Программа принимает файл конфигурации первым аргументом, а трассу читает из стандартного ввода (`stdin`):
 
