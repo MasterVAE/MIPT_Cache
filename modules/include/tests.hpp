@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstddef>
 
-struct CacheTestCase {
+struct CacheTestCase final {
     std::string name;
     std::size_t capacity;
     std::vector<int> requests;

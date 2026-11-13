@@ -10,13 +10,13 @@
 namespace lfu_cache {
 
 template <typename KeyT, typename Value>
-class lfu_cache : public CacheAPI<KeyT, Value> {
+class lfu_cache final : public CacheAPI<KeyT, Value> {
 public:
     explicit lfu_cache(
         std::size_t sz,
-        CacheAPI<KeyT, Value>* next = nullptr
+        std::unique_ptr<CacheAPI<KeyT, Value>> next = nullptr
     )
-        : CacheAPI<KeyT, Value>(next),
+        : CacheAPI<KeyT, Value>(std::move(next)),
           cache_sz_(sz),
           min_freq_(0) {}
 
@@ -25,8 +25,8 @@ public:
         Value result_data;
 
         auto fetch_from_next = [&](KeyT k) -> Value {
-            if (this->next_cache_level != nullptr) {
-                auto res = this->next_cache_level->Request(k);
+            if (this->next_cache_level_ != nullptr) {
+                auto res = this->next_cache_level_->Request(k);
                 misses_below = res.misses;
 
                 return res.data;
@@ -42,14 +42,14 @@ public:
     }
 
 private:
-    struct Node {
-        Value val;
-        std::size_t frequent_count;
-        typename std::list<KeyT>::iterator it;
+    struct Node final {
+        Value val_;
+        std::size_t frequent_count_;
+        typename std::list<KeyT>::iterator it_;
 
         Node(Value value, std::size_t frequency,
              typename std::list<KeyT>::iterator pos = {})
-            : val(std::move(value)), frequent_count(frequency), it(pos) {}
+            : val_(std::move(value)), frequent_count_(frequency), it_(pos) {}
     };
 
     std::size_t cache_sz_;
@@ -64,9 +64,9 @@ private:
 
     void UpdateFreq(KeyT key) {
         auto hit_it = hash_.find(key);
-        std::size_t freq = hit_it->second.frequent_count;
+        std::size_t freq = hit_it->second.frequent_count_;
 
-        freq_map_[freq].erase(hit_it->second.it);
+        freq_map_[freq].erase(hit_it->second.it_);
         if (freq_map_[freq].empty()) {
             freq_map_.erase(freq);
             if (freq == min_freq_) {
@@ -74,11 +74,11 @@ private:
             }
         }
 
-        ++hit_it->second.frequent_count;
-        std::size_t new_freq = hit_it->second.frequent_count;
+        ++hit_it->second.frequent_count_;
+        std::size_t new_freq = hit_it->second.frequent_count_;
 
         freq_map_[new_freq].push_front(key);
-        hit_it->second.it = freq_map_[new_freq].begin();
+        hit_it->second.it_ = freq_map_[new_freq].begin();
     }
 
 template <typename F>
@@ -91,7 +91,7 @@ template <typename F>
         auto hit_it = hash_.find(key);
 
         if (hit_it != hash_.end()) {
-            out_val = hit_it->second.val; 
+            out_val = hit_it->second.val_; 
             UpdateFreq(key);
             return true;
         }

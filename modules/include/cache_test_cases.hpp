@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <functional>
@@ -17,7 +16,7 @@
 using TestCache = CacheAPI<int, int>;
 using CacheFactory = std::function<std::unique_ptr<TestCache>(std::size_t)>;
 
-struct CacheImplementation
+struct CacheImplementation final
 {
     std::string name;
     CacheFactory create;
@@ -50,7 +49,6 @@ inline std::vector<CacheImplementation> GetCacheImplementations()
         {
             return std::make_unique<cache_2Q::cache_2Q_<int, int>>(capacity);
         }
-        
     });
         caches.push_back({
         "LFU",
@@ -59,6 +57,6 @@ inline std::vector<CacheImplementation> GetCacheImplementations()
             return std::make_unique<lfu_cache::lfu_cache<int, int>>(capacity);
         }
     });
-    
+
     return caches;
 }

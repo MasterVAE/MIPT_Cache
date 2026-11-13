@@ -11,21 +11,21 @@
 namespace arc_cache {
 
 template <typename KeyT, typename Value>
-class arc_cache : public CacheAPI<KeyT, Value> {
+class arc_cache final : public CacheAPI<KeyT, Value> {
 public:
     explicit arc_cache(
         std::size_t sz,
-        CacheAPI<KeyT, Value>* next = nullptr
+        std::unique_ptr<CacheAPI<KeyT, Value>> next = nullptr
     )
-        : CacheAPI<KeyT, Value>(next), cache_sz_(sz) {}
+        : CacheAPI<KeyT, Value>(std::move(next)), cache_sz_(sz) {}
 
     CacheResult<int, int> Request(KeyT key) override {
         int misses_below = 0;
         Value result_data;
 
         auto fetch_from_next = [&](KeyT k) -> Value {
-            if (this->next_cache_level != nullptr) {
-                auto res = this->next_cache_level->Request(k);
+            if (this->next_cache_level_ != nullptr) {
+                auto res = this->next_cache_level_->Request(k);
                 misses_below = res.misses;
 
                 return res.data;
@@ -48,14 +48,14 @@ private:
         B2_FREQUENT_GHOST
     };
 
-    struct Node {
-        Value val;
-        ListKind state;
-        typename std::list<KeyT>::iterator it;
+    struct Node final {
+        Value val_;
+        ListKind state_;
+        typename std::list<KeyT>::iterator it_;
 
         Node(Value value, ListKind list,
             typename std::list<KeyT>::iterator pos = {})
-            : val(std::move(value)), state(list), it(pos) {}
+            : val_(std::move(value)), state_(list), it_(pos) {}
     };
 
     std::size_t cache_sz_;
@@ -89,10 +89,10 @@ private:
             }
 
             recent_history_.splice( recent_history_.begin(), recent_list_, 
-                                           evicted_recent_key->second.it);
+                                           evicted_recent_key->second.it_);
 
-            evicted_recent_key->second.state = ListKind::B1_RECENT_GHOST;
-            evicted_recent_key->second.val = Value{};
+            evicted_recent_key->second.state_ = ListKind::B1_RECENT_GHOST;
+            evicted_recent_key->second.val_ = Value{};
         } else {
             auto evicted_frequent_key = hash_.find(frequent_list_.back());
 
@@ -102,10 +102,10 @@ private:
             }
 
             frequent_history_.splice(frequent_history_.begin(), frequent_list_, 
-                                              evicted_frequent_key->second.it);
+                                              evicted_frequent_key->second.it_);
 
-            evicted_frequent_key->second.state = ListKind::B2_FREQUENT_GHOST;
-            evicted_frequent_key->second.val = Value{};
+            evicted_frequent_key->second.state_ = ListKind::B2_FREQUENT_GHOST;
+            evicted_frequent_key->second.val_ = Value{};
         }
     }
 
@@ -119,22 +119,22 @@ template <typename F>
         auto hit_it = hash_.find(key);
 
         if (hit_it != hash_.end()) {
-            out_val = hit_it->second.val; 
+            out_val = hit_it->second.val_; 
 
-            if (hit_it->second.state == ListKind::T1_RECENT) {
-                hit_it->second.state = ListKind::T2_FREQUENT;
+            if (hit_it->second.state_ == ListKind::T1_RECENT) {
+                hit_it->second.state_ = ListKind::T2_FREQUENT;
                 frequent_list_.splice(frequent_list_.begin(), 
-                                      recent_list_, hit_it->second.it);
+                                      recent_list_, hit_it->second.it_);
                 return true;
             }
 
-            if (hit_it->second.state == ListKind::T2_FREQUENT) {
+            if (hit_it->second.state_ == ListKind::T2_FREQUENT) {
                 frequent_list_.splice(frequent_list_.begin(), 
-                                      frequent_list_, hit_it->second.it);
+                                      frequent_list_, hit_it->second.it_);
                 return true;
             }
 
-            if (hit_it->second.state == ListKind::B1_RECENT_GHOST) {
+            if (hit_it->second.state_ == ListKind::B1_RECENT_GHOST) {
                 std::size_t delta = std::max<std::size_t>(1, frequent_list_.size() /
                                     std::max<std::size_t>(1, recent_list_.size()));
 
@@ -153,14 +153,14 @@ template <typename F>
                     }
                 }
 
-                hit_it->second.state = ListKind::T2_FREQUENT;
+                hit_it->second.state_ = ListKind::T2_FREQUENT;
                 frequent_list_.splice(frequent_list_.begin(), 
-                                      recent_history_, hit_it->second.it);
-                hit_it->second.val = out_val;
+                                      recent_history_, hit_it->second.it_);
+                hit_it->second.val_ = out_val;
                 return false;
             }
 
-            if (hit_it->second.state == ListKind::B2_FREQUENT_GHOST) {
+            if (hit_it->second.state_ == ListKind::B2_FREQUENT_GHOST) {
                 std::size_t delta = std::max<std::size_t>(1, recent_list_.size() /
                                     std::max<std::size_t>(1, frequent_list_.size()));
                 target_recent_size_ = (target_recent_size_ >= delta) ? 
@@ -179,10 +179,10 @@ template <typename F>
                     }
                 }
 
-                hit_it->second.state = ListKind::T2_FREQUENT;
+                hit_it->second.state_ = ListKind::T2_FREQUENT;
                 frequent_list_.splice(frequent_list_.begin(), frequent_history_, 
-                                      hit_it->second.it);
-                hit_it->second.val = out_val;
+                                      hit_it->second.it_);
+                hit_it->second.val_ = out_val;
                 return false;
             }
         }

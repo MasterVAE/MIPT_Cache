@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstddef>
 #include <iterator>
+#include <memory>
 #include <set>
 #include <unordered_map>
 #include <utility>
@@ -11,7 +12,7 @@
 
 
 template <typename KeyT, typename Value>
-struct CacheResult{
+struct CacheResult final{
     Value data;
     int misses;
 };
@@ -19,15 +20,13 @@ struct CacheResult{
 template <typename KeyT, typename Value>
 class CacheAPI {
 protected:
-    CacheAPI<KeyT, Value>* next_cache_level;
+    std::unique_ptr<CacheAPI<KeyT, Value>> next_cache_level_;
 
 public:
-    explicit CacheAPI(CacheAPI<KeyT, Value>* next = nullptr)
-        : next_cache_level(next) {}
+    explicit CacheAPI(std::unique_ptr<CacheAPI<KeyT, Value>> next = nullptr)
+        : next_cache_level_(std::move(next)) {}
 
-    virtual ~CacheAPI() {
-        delete next_cache_level;
-    }
+    virtual ~CacheAPI() = default;
 
     virtual CacheResult<int, int> Request(KeyT key) = 0;
 

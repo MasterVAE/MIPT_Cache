@@ -12,12 +12,12 @@ enum LayerType {
     LAYER_LIRS
 };
 
-struct ConfigLayer {
+struct ConfigLayer final {
     std::size_t size;
     LayerType type;
 };
 
-struct Config {
+struct Config final {
     std::vector<ConfigLayer> layers;
 };
 

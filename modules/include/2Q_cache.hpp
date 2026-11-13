@@ -11,13 +11,13 @@
 namespace cache_2Q {
 
 template <typename KeyT, typename Value>
-class cache_2Q_ : public CacheAPI<KeyT, Value> {
+class cache_2Q_ final : public CacheAPI<KeyT, Value> {
 public:
     explicit cache_2Q_(
         std::size_t cache_sz,
-        CacheAPI<KeyT, Value>* next = nullptr
+        std::unique_ptr<CacheAPI<KeyT, Value>> next = nullptr
     )
-        : CacheAPI<KeyT, Value>(next),
+        : CacheAPI<KeyT, Value>(std::move(next)),
           cache_sz_(cache_sz),
           in_sz_(std::max<std::size_t>(1, cache_sz / 4)),
           out_sz_(std::max<std::size_t>(1, cache_sz)) {}
@@ -27,8 +27,8 @@ public:
         Value result_data;
 
         auto fetch_from_next = [&](KeyT k) -> Value {
-            if (this->next_cache_level != nullptr) {
-                auto res = this->next_cache_level->Request(k);
+            if (this->next_cache_level_ != nullptr) {
+                auto res = this->next_cache_level_->Request(k);
                 misses_below = res.misses;
 
                 return res.data;
@@ -46,14 +46,14 @@ public:
 private:
     enum class ListKind { IN_, HOT_, OUT_ };
 
-    struct Node {
-        Value val;
-        ListKind state;
-        typename std::list<KeyT>::iterator it;
+    struct Node final {
+        Value val_;
+        ListKind state_;
+        typename std::list<KeyT>::iterator it_;
 
         Node(Value value, ListKind list,
              typename std::list<KeyT>::iterator pos = {})
-            : val(std::move(value)), state(list), it(pos) {}
+            : val_(std::move(value)), state_(list), it_(pos) {}
     };
 
     std::size_t cache_sz_;
@@ -75,27 +75,27 @@ private:
         auto hit_it = hash_.find(key);
 
         if (hit_it != hash_.end()) {
-            if (hit_it->second.state == ListKind::IN_) {
-                out_val = hit_it->second.val; 
+            if (hit_it->second.state_ == ListKind::IN_) {
+                out_val = hit_it->second.val_; 
                 return true;
             }
 
-            if (hit_it->second.state == ListKind::HOT_) {
-                out_val = hit_it->second.val; 
-                cache_hot_.splice(cache_hot_.begin(), cache_hot_, hit_it->second.it);
+            if (hit_it->second.state_ == ListKind::HOT_) {
+                out_val = hit_it->second.val_; 
+                cache_hot_.splice(cache_hot_.begin(), cache_hot_, hit_it->second.it_);
                 return true;
             }
 
-            if (hit_it->second.state == ListKind::OUT_) {
+            if (hit_it->second.state_ == ListKind::OUT_) {
                 out_val = slow_get_page(key); 
 
-                cache_out_.erase(hit_it->second.it);
+                cache_out_.erase(hit_it->second.it_);
                 EnsureFreeSpace();
 
                 cache_hot_.push_front(key);
-                hit_it->second.val = out_val;
-                hit_it->second.state = ListKind::HOT_;
-                hit_it->second.it = cache_hot_.begin();
+                hit_it->second.val_ = out_val;
+                hit_it->second.state_ = ListKind::HOT_;
+                hit_it->second.it_ = cache_hot_.begin();
                 return false;
             }
         }
@@ -123,8 +123,8 @@ private:
             }
 
             cache_out_.push_front(victim);
-            hash_.at(victim).state = ListKind::OUT_;
-            hash_.at(victim).it = cache_out_.begin();
+            hash_.at(victim).state_ = ListKind::OUT_;
+            hash_.at(victim).it_ = cache_out_.begin();
         } else {
             KeyT victim = cache_hot_.back();
             cache_hot_.pop_back();
