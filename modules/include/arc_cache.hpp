@@ -67,6 +67,8 @@ private:
     std::list<KeyT> frequent_history_;
     std::unordered_map<KeyT, Node> hash_;
 
+    using HashIterator = typename std::unordered_map<KeyT, Node> ::iterator;
+
     bool isCacheFull() const {
         return recent_list_.size() + frequent_list_.size() >= cache_sz_;
     }
@@ -108,6 +110,76 @@ private:
             evicted_frequent_key->second.val_ = Value{};
         }
     }
+    void HandleHitT1(HashIterator hit_it) {
+        hit_it->second.state_ = ListKind::T2_FREQUENT;
+        frequent_list_.splice(frequent_list_.begin(), 
+                              recent_list_, hit_it->second.it_);
+    }
+
+    void HandleHitT2(HashIterator hit_it) {
+        frequent_list_.splice(frequent_list_.begin(), 
+                              frequent_list_, hit_it->second.it_);
+    }
+
+template <typename F>
+    bool HandleGhostB1(KeyT key, HashIterator hit_it, F slow_get_page, Value& out_val) {
+        std::size_t delta = std::max<std::size_t>(1, frequent_list_.size() /
+                            std::max<std::size_t>(1, recent_list_.size()));
+
+        target_recent_size_ = std::min(cache_sz_, target_recent_size_ + delta);
+        out_val = slow_get_page(key);
+        if (isCacheFull()) {
+            Replace();
+            hit_it = hash_.find(key);
+            if (hit_it == hash_.end()) {
+                frequent_list_.push_front(key);
+                hash_.emplace(key, Node(out_val, ListKind::T2_FREQUENT,
+                                        frequent_list_.begin()));
+                return false;
+            }
+        }
+        hit_it->second.state_ = ListKind::T2_FREQUENT;
+        frequent_list_.splice(frequent_list_.begin(), 
+                              recent_history_, hit_it->second.it_);
+        hit_it->second.val_ = out_val;
+        return false;
+    }
+
+template <typename F>
+    bool HandleGhostB2(KeyT key, HashIterator hit_it, F slow_get_page, Value& out_val) {
+        std::size_t delta = std::max<std::size_t>(1, recent_list_.size() /
+                            std::max<std::size_t>(1, frequent_list_.size()));
+        target_recent_size_ = (target_recent_size_ >= delta) ? 
+                              target_recent_size_ - delta : 0;
+        
+        out_val = slow_get_page(key);
+        if (isCacheFull()) {
+            Replace();
+            hit_it = hash_.find(key);
+            if (hit_it == hash_.end()) {
+                frequent_list_.push_front(key);
+                hash_.emplace(key, Node(out_val, ListKind::T2_FREQUENT,
+                                        frequent_list_.begin()));
+                return false;
+            }
+        }
+        hit_it->second.state_ = ListKind::T2_FREQUENT;
+        frequent_list_.splice(frequent_list_.begin(), frequent_history_, 
+                              hit_it->second.it_);
+        hit_it->second.val_ = out_val;
+        return false;
+    }
+
+template <typename F>
+    void HandleCleanMiss(KeyT key, F slow_get_page, Value& out_val){
+        out_val = slow_get_page(key);
+
+        if (isCacheFull()) {
+            Replace();
+        }
+        recent_list_.push_front(key);
+        hash_.emplace(key, Node(out_val, ListKind::T1_RECENT, recent_list_.begin()));
+    }
 
 template <typename F>
     bool LookUpUpdate(KeyT key, F slow_get_page, Value& out_val) {
@@ -122,78 +194,25 @@ template <typename F>
             out_val = hit_it->second.val_; 
 
             if (hit_it->second.state_ == ListKind::T1_RECENT) {
-                hit_it->second.state_ = ListKind::T2_FREQUENT;
-                frequent_list_.splice(frequent_list_.begin(), 
-                                      recent_list_, hit_it->second.it_);
+                HandleHitT1(hit_it);
                 return true;
             }
 
             if (hit_it->second.state_ == ListKind::T2_FREQUENT) {
-                frequent_list_.splice(frequent_list_.begin(), 
-                                      frequent_list_, hit_it->second.it_);
+                HandleHitT2(hit_it);
                 return true;
             }
 
             if (hit_it->second.state_ == ListKind::B1_RECENT_GHOST) {
-                std::size_t delta = std::max<std::size_t>(1, frequent_list_.size() /
-                                    std::max<std::size_t>(1, recent_list_.size()));
-
-                target_recent_size_ = std::min(cache_sz_, target_recent_size_ + delta);
-                
-                out_val = slow_get_page(key); 
-
-                if (isCacheFull()) {
-                    Replace();
-                    hit_it = hash_.find(key);
-                    if (hit_it == hash_.end()) {
-                        frequent_list_.push_front(key);
-                        hash_.emplace(key, Node(out_val, ListKind::T2_FREQUENT,
-                                                frequent_list_.begin()));
-                        return false;
-                    }
-                }
-
-                hit_it->second.state_ = ListKind::T2_FREQUENT;
-                frequent_list_.splice(frequent_list_.begin(), 
-                                      recent_history_, hit_it->second.it_);
-                hit_it->second.val_ = out_val;
-                return false;
+                return HandleGhostB1(key, hit_it, slow_get_page, out_val);
             }
 
             if (hit_it->second.state_ == ListKind::B2_FREQUENT_GHOST) {
-                std::size_t delta = std::max<std::size_t>(1, recent_list_.size() /
-                                    std::max<std::size_t>(1, frequent_list_.size()));
-                target_recent_size_ = (target_recent_size_ >= delta) ? 
-                                      target_recent_size_ - delta : 0;
-                
-                out_val = slow_get_page(key);
-
-                if (isCacheFull()) {
-                    Replace();
-                    hit_it = hash_.find(key);
-                    if (hit_it == hash_.end()) {
-                        frequent_list_.push_front(key);
-                        hash_.emplace(key, Node(out_val, ListKind::T2_FREQUENT,
-                                                frequent_list_.begin()));
-                        return false;
-                    }
-                }
-
-                hit_it->second.state_ = ListKind::T2_FREQUENT;
-                frequent_list_.splice(frequent_list_.begin(), frequent_history_, 
-                                      hit_it->second.it_);
-                hit_it->second.val_ = out_val;
-                return false;
-            }
+                return HandleGhostB2(key, hit_it, slow_get_page, out_val);
+            }       
         }
-
-        out_val = slow_get_page(key);
-
-        if (isCacheFull()) {
-            Replace();
-        }
-        recent_list_.push_front(key);
-        hash_.emplace(key, Node(out_val, ListKind::T1_RECENT, recent_list_.begin()));
+        
+        HandleCleanMiss(key, slow_get_page, out_val);
         return false;
     }
 };

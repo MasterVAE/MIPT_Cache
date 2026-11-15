@@ -74,6 +74,7 @@ private:
     std::list<KeyT> stack_;
     std::list<KeyT> queue_;
     std::unordered_map<KeyT, Node> hash_;
+    using HashIterator = typename std::unordered_map<KeyT, Node> ::iterator;
 
     bool isStackFull() const { return stack_.size() > stack_sz_; }
     bool isQueueFull() const { return queue_.size() > queue_sz_; }
@@ -126,71 +127,59 @@ private:
             }
         }
     }
-
-  template <typename F>
-    bool LookUpUpdate(KeyT key, F slow_get_page, Value& out_val) {
-        if (cache_sz_ == 0) {
-            out_val = slow_get_page(key);
-            return false;
+    
+    void HandleLIR(KeyT key, HashIterator hit_it, Value& out_val) {
+        auto& entry = hit_it->second; 
+        out_val = entry.val_;
+        bool is_bottom = (key == stack_.front());
+        stack_.splice(stack_.end(), stack_, entry.iter_S_);
+        if (is_bottom) {
+            PruneStack();
         }
-
-        auto hit_it = hash_.find(key);
-
-        if (hit_it != hash_.end()) {
-            auto& entry = hit_it->second;
-
-            if (entry.state_ == ListKind::LIR) {
-                out_val = entry.val_;
-                bool is_bottom = (key == stack_.front());
-                stack_.splice(stack_.end(), stack_, entry.iter_S_);
-                if (is_bottom) {
-                    PruneStack();
-                }
-                return true;
-            }
-
-            if (entry.state_ == ListKind::RES_HIR) {
-                out_val = entry.val_; 
+    }
+    void HandleResHIR(KeyT key, HashIterator hit_it, Value& out_val) {
+        auto& entry = hit_it->second;
+        out_val = entry.val_; 
                 
-                if (entry.in_queue_) {
-                    queue_.erase(entry.iter_Q_);
-                    entry.in_queue_ = false;
-                    entry.state_ = ListKind::LIR;
-
-                    if (!isLirFull()) {
-                        ++lir_count_;
-                    } else {
-                        DemoteBottomLir();
-                    }
-                }
-
-                if (entry.in_stack_) {
-                    stack_.splice(stack_.end(), stack_, entry.iter_S_);
-                } else {
-                    entry.iter_S_ = stack_.insert(stack_.end(), key);
-                    entry.in_stack_ = true;
-                }
-                entry.in_queue_ = false;
-                return true;
-            }
-
-            if (entry.state_ == ListKind::NON_RES_HIR) {
-                out_val = slow_get_page(key);
-
-                entry.state_ = ListKind::LIR;
-                entry.in_stack_ = true;
-                stack_.splice(stack_.end(), stack_, entry.iter_S_);
-                entry.val_ = out_val;
-
-                if (!isLirFull()) {
-                    ++lir_count_;
-                } else {
-                    DemoteBottomLir();
-                }
-                return false;
+        if (entry.in_queue_) {
+            queue_.erase(entry.iter_Q_);
+            entry.in_queue_ = false;
+            entry.state_ = ListKind::LIR;
+            if (!isLirFull()) {
+                ++lir_count_;
+            } else {
+                DemoteBottomLir();
             }
         }
+        
+        if (entry.in_stack_) {
+            stack_.splice(stack_.end(), stack_, entry.iter_S_);
+        } else {
+            entry.iter_S_ = stack_.insert(stack_.end(), key);
+            entry.in_stack_ = true;
+        }
+        entry.in_queue_ = false;
+        
+    }
+  template <typename F>
+    void HandleNonResHIR(KeyT key, F slow_get_page, HashIterator hit_it, Value& out_val) {
+        auto& entry = hit_it->second;
 
+        out_val = slow_get_page(key);
+
+        entry.state_ = ListKind::LIR;
+        entry.in_stack_ = true;
+        stack_.splice(stack_.end(), stack_, entry.iter_S_);
+        entry.val_ = out_val;
+
+        if (!isLirFull()) {
+            ++lir_count_;
+        } else {
+            DemoteBottomLir();
+        }
+    }
+  template <typename F>
+    void HandleCleanMiss(KeyT key,F slow_get_page, Value& out_val) {
         out_val = slow_get_page(key);
         
         Node new_node;
@@ -226,6 +215,36 @@ private:
         }
 
         hash_.emplace(key, std::move(new_node));
+    }
+
+  template <typename F>
+    bool LookUpUpdate(KeyT key, F slow_get_page, Value& out_val) {
+        if (cache_sz_ == 0) {
+            out_val = slow_get_page(key);
+            return false;
+        }
+
+        auto hit_it = hash_.find(key);
+
+        if (hit_it != hash_.end()) {
+            auto& entry = hit_it->second;
+
+            if (entry.state_ == ListKind::LIR) {
+                HandleLIR(key, hit_it, out_val);
+                return true;
+            }
+
+            if (entry.state_ == ListKind::RES_HIR) {
+                HandleResHIR(key, hit_it, out_val);
+                return true;
+            }
+
+            if (entry.state_ == ListKind::NON_RES_HIR) {
+                HandleNonResHIR(key, slow_get_page, hit_it, out_val);
+                return false;
+            }
+        }
+        HandleCleanMiss(key, slow_get_page,out_val);
         return false;
     }
 };

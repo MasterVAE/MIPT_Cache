@@ -64,6 +64,39 @@ private:
     std::list<KeyT> cache_out_;
     std::list<KeyT> cache_hot_;
     std::unordered_map<KeyT, Node> hash_;
+    using HashIterator = typename std::unordered_map<KeyT, Node> ::iterator;
+
+    bool ProcessHit(HashIterator hit_it, Value& out_val){
+       out_val = hit_it->second.val_;  
+       if (hit_it->second.state_ == ListKind::HOT_) {
+          cache_hot_.splice(cache_hot_.begin(), cache_hot_, hit_it->second.it_);
+       }
+       return true;
+    }
+
+  template <typename F>
+    void ProcessCleanMiss(KeyT key, F slow_get_page, Value& out_val){
+        out_val = slow_get_page(key); 
+        EnsureFreeSpace();
+
+        cache_in_.push_front(key);
+        hash_.emplace(key, Node{out_val, ListKind::IN_, cache_in_.begin()});
+    }
+
+  template <typename F>
+    bool ProcessMiss(KeyT key, HashIterator hit_it, F slow_get_page, Value& out_val){
+        out_val = slow_get_page(key);    
+        cache_out_.erase(hit_it->second.it_);
+        EnsureFreeSpace();   
+
+        cache_hot_.push_front(key);
+        hit_it->second.val_ = out_val;
+        hit_it->second.state_ = ListKind::HOT_;
+        hit_it->second.it_ = cache_hot_.begin();
+
+        return false;
+        
+    }
 
   template <typename F>
     bool LookUpUpdate(KeyT key, F slow_get_page, Value& out_val) {
@@ -75,36 +108,15 @@ private:
         auto hit_it = hash_.find(key);
 
         if (hit_it != hash_.end()) {
-            if (hit_it->second.state_ == ListKind::IN_) {
-                out_val = hit_it->second.val_; 
-                return true;
+            if (hit_it->second.state_ == ListKind::IN_ || hit_it->second.state_ == ListKind::HOT_) {
+                return ProcessHit(hit_it, out_val);
             }
-
-            if (hit_it->second.state_ == ListKind::HOT_) {
-                out_val = hit_it->second.val_; 
-                cache_hot_.splice(cache_hot_.begin(), cache_hot_, hit_it->second.it_);
-                return true;
-            }
-
             if (hit_it->second.state_ == ListKind::OUT_) {
-                out_val = slow_get_page(key); 
-
-                cache_out_.erase(hit_it->second.it_);
-                EnsureFreeSpace();
-
-                cache_hot_.push_front(key);
-                hit_it->second.val_ = out_val;
-                hit_it->second.state_ = ListKind::HOT_;
-                hit_it->second.it_ = cache_hot_.begin();
-                return false;
+                return ProcessMiss(key, hit_it, slow_get_page, out_val);
             }
         }
 
-        out_val = slow_get_page(key); 
-        EnsureFreeSpace();
-
-        cache_in_.push_front(key);
-        hash_.emplace(key, Node{out_val, ListKind::IN_, cache_in_.begin()});
+        ProcessCleanMiss(key, slow_get_page, out_val);
         return false;
     }
 
