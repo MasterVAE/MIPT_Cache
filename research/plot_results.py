@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Plot workload rankings and algorithm aggregates from analyze_results.py CSVs.
+"""Plot equal-capacity comparisons and optional gap rankings from summary CSVs.
 
-Also accepts the published README snapshot in research/data/. Only rows present
-in the input are compared; missing configurations are never filled with zeros.
+Only rows present in the input are compared; missing configurations are never
+filled with zeros. The main comparisons require the full experiment summary.
 """
 
 from __future__ import annotations
@@ -17,11 +17,12 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
-from matplotlib.ticker import FuncFormatter
+from matplotlib.ticker import FuncFormatter, MaxNLocator
 
 
 LEVEL_COLORS = {1: "#007C83", 2: "#4363B5", 3: "#AD5B19"}
 PERFECT_COLOR = "#ABB5C5"
+ALGORITHM_COLORS = {"LIRS": "#007C83", "ARC": "#4363B5", "2Q": "#AD5B19", "LFU": "#9061AD"}
 WORKLOAD_TITLES = {
     "cyclic": "Циклический обход",
     "phase_shift": "Смена горячего набора",
@@ -139,18 +140,118 @@ def plot_algorithms(rows: list[dict[str, str]], output: Path) -> None:
     plt.close(fig)
 
 
+def plot_single_level(workload: str, rows: list[dict[str, str]], output: Path) -> None:
+    rows = [row for row in rows if ">" not in row["algorithms"]]
+    if not rows:
+        return
+    capacities = sorted({int(row["total_capacity"]) for row in rows})
+    algorithms = [algorithm for algorithm in ALGORITHM_COLORS
+                  if any(row["algorithms"] == algorithm for row in rows)]
+    indexed = {(int(row["total_capacity"]), row["algorithms"]): row for row in rows}
+    if len(indexed) != len(rows):
+        raise ValueError(f"{workload}: multiple workload settings; plot one request_count/keyspace at a time")
+    if len(indexed) != len(capacities) * len(algorithms):
+        raise ValueError(f"{workload}: incomplete single-level comparison")
+    runs = sorted({int(row["runs"]) for row in rows})
+    if len(runs) != 1:
+        raise ValueError(f"{workload}: inconsistent seed counts")
+    request_counts = {int(row["request_count"]) for row in rows}
+    if len(request_counts) != 1:
+        raise ValueError(f"{workload}: inconsistent request counts")
+    request_count = request_counts.pop()
+    maximum = max(float(row["max_total_miss"]) for row in rows)
+    fig, axes = plt.subplots(1, len(capacities), figsize=(13.5, 5.2), squeeze=False, sharex=True)
+    fig.subplots_adjust(left=0.08, right=0.98, top=0.75, bottom=0.22, wspace=0.18)
+    fig.suptitle(f"{workload} · {WORKLOAD_TITLES.get(workload, workload)}",
+                 x=0.025, y=0.98, ha="left", fontsize=17, weight="bold")
+    fig.text(0.025, 0.88,
+             f"Один уровень · {number(request_count)} запросов · среднее по {runs[0]} seed · меньше — лучше",
+             fontsize=11, color="#526174")
+    labels = algorithms + ["Белади"]
+    for ax, capacity in zip(axes[0], capacities):
+        selected = [indexed[(capacity, algorithm)] for algorithm in algorithms]
+        baselines = {float(row["avg_perfect_miss"]) for row in selected}
+        if len(baselines) != 1:
+            raise ValueError(f"{workload}: inconsistent perfect-cache baseline at capacity {capacity}")
+        values = [float(row["avg_total_miss"]) for row in selected] + [baselines.pop()]
+        positions = list(range(len(labels)))
+        ax.barh(positions, values, color=[ALGORITHM_COLORS[a] for a in algorithms] + [PERFECT_COLOR], height=0.5)
+        lower = [float(row["min_total_miss"]) for row in selected] + [float(selected[0]["min_perfect_miss"])]
+        upper = [float(row["max_total_miss"]) for row in selected] + [float(selected[0]["max_perfect_miss"])]
+        ax.errorbar(values, positions, xerr=[
+            [max(0, mean - low) for mean, low in zip(values, lower)],
+            [max(0, high - mean) for mean, high in zip(values, upper)],
+        ], fmt="none", ecolor="#213047", elinewidth=1, capsize=3)
+        for position, value in zip(positions, values):
+            ax.annotate(number(value, 1), (value, position), xytext=(5, 8),
+                        textcoords="offset points", va="center", fontsize=9)
+        ax.set_yticks(positions, labels if capacity == capacities[0] else [""] * len(labels))
+        ax.set_title(f"Ёмкость: {capacity}", fontsize=12, pad=16, weight="bold")
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda value, _: number(value)))
+        ax.xaxis.set_major_locator(MaxNLocator(nbins=4))
+        style_axis(ax, len(labels), maximum)
+    fig.text(0.5, 0.09, "Число промахов · засечки: минимум–максимум по seed (не доверительный интервал)",
+             ha="center", fontsize=11, color="#526174")
+    fig.savefig(output, dpi=160, facecolor="white")
+    plt.close(fig)
+
+
+def plot_hierarchy(rows: list[dict[str, str]], output: Path) -> None:
+    workloads = [workload for workload in WORKLOAD_TITLES if any(row["workload"] == workload for row in rows)]
+    capacities = sorted({int(row["total_capacity"]) for row in rows})
+    levels = sorted({len(row["algorithms"].split(">")) for row in rows})
+    fig, axes = plt.subplots(len(workloads), len(capacities), figsize=(13.5, 12), squeeze=False)
+    fig.subplots_adjust(left=0.13, right=0.98, top=0.88, bottom=0.08, wspace=0.12, hspace=0.45)
+    fig.suptitle("Как число уровней меняет сумму промахов", x=0.025, y=0.98,
+                 ha="left", fontsize=17, weight="bold")
+    fig.text(0.025, 0.94, "В каждой группе выбран минимум среднего total_miss среди проверенных конфигураций.",
+             fontsize=11, color="#526174")
+    for row_index, workload in enumerate(workloads):
+        maximum = 0.0
+        for column, capacity in enumerate(capacities):
+            ax = axes[row_index][column]
+            for position, level in enumerate(levels):
+                candidates = [row for row in rows if row["workload"] == workload
+                              and int(row["total_capacity"]) == capacity
+                              and len(row["algorithms"].split(">")) == level]
+                if not candidates:
+                    continue
+                best = min(candidates, key=lambda row: (float(row["avg_total_miss"]), row["algorithms"], row["capacities"]))
+                value = float(best["avg_total_miss"])
+                maximum = max(maximum, value)
+                ax.barh(position, value, height=0.55, color=LEVEL_COLORS.get(level, "#756299"))
+                ax.annotate(number(value, 1), (value, position), xytext=(5, 0),
+                            textcoords="offset points", va="center", fontsize=9)
+            ax.set_yticks(range(len(levels)), [f"Уровней: {level}" for level in levels] if column == 0 else [""] * len(levels))
+            if column == 0:
+                ax.set_ylabel(workload, fontsize=12, weight="bold", labelpad=15)
+            if row_index == 0:
+                ax.set_title(f"Общая ёмкость: {capacity}", fontsize=12, pad=16, weight="bold")
+            ax.xaxis.set_major_formatter(FuncFormatter(lambda value, _: number(value)))
+            ax.xaxis.set_major_locator(MaxNLocator(nbins=4))
+        for ax in axes[row_index]:
+            style_axis(ax, len(levels), maximum)
+    fig.text(0.5, 0.025, "Суммарные промахи по всем уровням · среднее по seed · меньше — лучше",
+             ha="center", fontsize=11, color="#526174")
+    fig.savefig(output, dpi=160, facecolor="white")
+    plt.close(fig)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("by_workload", type=Path, help="summary_by_workload.csv or published snapshot")
-    parser.add_argument("by_algorithm", type=Path, help="summary_by_algorithm.csv or published snapshot")
+    parser.add_argument("by_workload", type=Path, help="summary_by_workload.csv")
+    parser.add_argument("by_algorithm", type=Path, help="summary_by_algorithm.csv")
     parser.add_argument("--output-dir", type=Path, default=Path("research/plots"))
     parser.add_argument("--top", type=int, default=5, help="Configurations per workload (default: 5)")
+    parser.add_argument("--rankings", action="store_true", help="Also write top-N gap and overlapping algorithm-group plots")
     args = parser.parse_args()
     if args.top < 1:
         parser.error("--top must be >= 1")
     try:
         workloads = read_summary(args.by_workload, {
             "workload", "algorithms", "capacities", "gap_percent", "avg_total_miss", "avg_perfect_miss",
+            "request_count", "total_capacity", "runs", "min_total_miss", "max_total_miss",
+            "min_perfect_miss", "max_perfect_miss",
         })
         algorithms = read_summary(args.by_algorithm, {"algorithm", "configs", "gap_percent"})
     except (OSError, ValueError) as exc:
@@ -165,12 +266,20 @@ def main() -> int:
         # Workload names are also filenames; reject path components from CSV.
         if not workload or any(char not in "abcdefghijklmnopqrstuvwxyz0123456789_-" for char in workload):
             parser.error(f"Invalid workload name: {workload!r}")
-        path = args.output_dir / f"top_{workload}.png"
-        plot_workload(workload, rows, path, args.top)
+        path = args.output_dir / f"single_{workload}.png"
+        plot_single_level(workload, rows, path)
         print(path)
-    path = args.output_dir / "algorithm_gap.png"
-    plot_algorithms(algorithms, path)
+        if args.rankings:
+            path = args.output_dir / f"top_{workload}.png"
+            plot_workload(workload, rows, path, args.top)
+            print(path)
+    path = args.output_dir / "hierarchy_best.png"
+    plot_hierarchy(workloads, path)
     print(path)
+    if args.rankings:
+        path = args.output_dir / "algorithm_gap.png"
+        plot_algorithms(algorithms, path)
+        print(path)
     return 0
 
 
