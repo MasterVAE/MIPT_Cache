@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
         layers.push_back(layer.size);
     }
 
-    CacheAPI<int, int>* system_cache = CreateCache<int, int>(std::move(config));
+    std::unique_ptr<CacheAPI<int, int>> system_cache(CreateCache<int, int>(std::move(config)));
     if(!system_cache) exit(EXIT_FAILURE);
 
     std::size_t count = 0;
@@ -40,13 +40,11 @@ int main(int argc, char* argv[])
 
     for(std::size_t i = 0; i < count; i++) std::cin >> numbers[i];
 
-    int miss = RunCache(system_cache, count, numbers);
+    int miss = RunCache(system_cache.get(), count, numbers);
     int perfect_miss = RunPerfectCache(layers, numbers);
 
     std::cout << "Misses: " << miss << std::endl;
     std::cout << "Perfect cache misses: " << perfect_miss << std::endl;
-
-    delete system_cache;
 
     return 0;
 }

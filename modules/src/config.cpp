@@ -17,7 +17,7 @@ LayerType ParseLayerType(std::string_view name)
         {"ARC",  LAYER_ARC},
         {"2Q",   LAYER_2Q},
         {"LFU",  LAYER_LFU},
-        {"LIRS", LAYER_LIRS},
+        {"LIRS", LAYER_LIRS}
     };
 
     if (auto it = kTypes.find(name); it != kTypes.end()) {
